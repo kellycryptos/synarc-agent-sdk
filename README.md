@@ -1,4 +1,4 @@
-# @synarc/agent-sdk
+# synarc-agent-sdk
 
 SDK for integrating SynArc governance and treasury on Arc Network.
 Built for humans, organizations, and autonomous AI agents.
@@ -6,19 +6,19 @@ Built for humans, organizations, and autonomous AI agents.
 ## Install
 
 ```bash
-npm install @synarc/agent-sdk
+npm install synarc-agent-sdk
 ```
 
 ---
 
 ## Wallet Support
 
-`@synarc/agent-sdk` is fully wallet-agnostic. It integrates natively with any standard EIP-1193 ethereum provider, pre-built `viem` `WalletClient`, or a raw private key.
+`synarc-agent-sdk` is fully wallet-agnostic. It integrates natively with any standard EIP-1193 ethereum provider, pre-built `viem` `WalletClient`, or a raw private key.
 
 ### 1. AI Agent (Private Key — Server-Side)
 Ideal for autonomous AI agents executing governance actions programmatically without a browser.
 ```typescript
-import { SynArc, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
 const synarc = new SynArc({
   governorAddress: SYNARC_TESTNET.governor,
@@ -31,7 +31,7 @@ const synarc = new SynArc({
 ### 2. Browser Wallets (MetaMask / Rabby / OKX — Injected)
 Integrate with standard injected wallets in browser environments.
 ```typescript
-import { SynArc, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
 const synarc = new SynArc({
   governorAddress: SYNARC_TESTNET.governor,
@@ -44,7 +44,7 @@ const synarc = new SynArc({
 ### 3. Privy Embedded Wallet
 Obtain the EIP-1193 provider from Privy's wallet handle.
 ```typescript
-import { SynArc, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 import { useWallets } from '@privy-io/react-auth'
 
 const { wallets } = useWallets()
@@ -61,7 +61,7 @@ const synarc = new SynArc({
 ### 4. Circle Programmable Wallet
 Integrate with Circle's Web3 User-Controlled wallets.
 ```typescript
-import { SynArc, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
 const provider = await circleWallet.getEip1193Provider()
 
@@ -76,7 +76,7 @@ const synarc = new SynArc({
 ### 5. Coinbase Wallet
 Integrate using the Coinbase Wallet SDK provider.
 ```typescript
-import { SynArc, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 import { CoinbaseWalletSDK } from '@coinbase/wallet-sdk'
 
 const coinbase = new CoinbaseWalletSDK({ appName: 'SynArc DAO App' })
@@ -93,7 +93,7 @@ const synarc = new SynArc({
 ### 6. WalletConnect
 Integrate with multi-wallet interfaces using WalletConnect.
 ```typescript
-import { SynArc, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 import { EthereumProvider } from '@walletconnect/ethereum-provider'
 
 const provider = await EthereumProvider.init({ projectId: 'YOUR_PROJECT_ID' })
@@ -109,7 +109,7 @@ const synarc = new SynArc({
 ### 7. Read-Only Mode (No Wallet)
 Query balances, state, and historical proposals directly from the network without connecting a wallet.
 ```typescript
-import { SynArc, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
 const synarc = new SynArc({
   governorAddress: SYNARC_TESTNET.governor,
@@ -213,7 +213,7 @@ const txHash = await synarc.depositEURC('100.00')
 To keep code modular, the SDK exposes `SynArcGovernance` and `SynArcTreasury` sub-classes. They accept either an existing `SynArc` instance or a `SynArcConfig` directly.
 
 ```typescript
-import { SynArcGovernance, SynArcTreasury, SYNARC_TESTNET } from '@synarc/agent-sdk'
+import { SynArcGovernance, SynArcTreasury, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
 // Instantation with config
 const gov = new SynArcGovernance({
