@@ -1,5 +1,6 @@
 export { SynArc } from './SynArc'
 export { SynArcGovernance } from './governance'
 export { SynArcTreasury } from './treasury'
+export { SynArcCreator } from './creator'
 export * from './types'
 export * from './constants'

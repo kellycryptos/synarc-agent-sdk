@@ -25,6 +25,20 @@ export interface ProposalParams {
   values?: bigint[]
   calldatas?: `0x${string}`[]
   votingDurationDays?: number
+
+  // Creator templates:
+  template?: 'funding' | 'milestone' | 'general'
+  templateParams?: {
+    recipient?: `0x${string}`
+    amountUSDC?: string | number
+    milestoneId?: number
+    milestoneTitle?: string
+  }
+}
+
+export interface CreatorStats {
+  votingPower: string
+  balanceUSDC: string
 }
 
 export interface ProposalData {

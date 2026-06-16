@@ -1,7 +1,7 @@
 {
   "name": "synarc-agent-sdk",
   "version": "0.1.0",
-  "description": "SDK for integrating SynArc governance and treasury on Arc Network",
+  "description": "SDK for integrating SynArc Creator Economy, nanopayments, governance, and treasury on Arc Network",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -19,7 +19,12 @@
     "governance",
     "arc",
     "usdc",
-    "web3"
+    "web3",
+    "creator",
+    "nanopayments",
+    "micropayments",
+    "lepton",
+    "fan-support"
   ],
   "author": "kellycryptos",
   "license": "MIT",
@@ -31,8 +36,5 @@
     "typescript": "^5.0.0",
     "viem": "^2.49.3",
     "vitest": "^4.1.8"
-  },
-  "dependencies": {
-    "synarc-agent-sdk": "^0.1.0"
   }
 }

@@ -3,6 +3,7 @@ import {
   SynArc,
   SynArcGovernance,
   SynArcTreasury,
+  SynArcCreator,
   SYNARC_TESTNET,
   ARC_TESTNET,
 } from '../src/index'
@@ -58,5 +59,12 @@ describe('SynArc SDK tests', () => {
     expect(treasury.getTreasuryBalance).toBeDefined()
     expect(treasury.depositUSDC).toBeDefined()
     expect(treasury.depositEURC).toBeDefined()
+  })
+
+  it('should instantiate SynArcCreator and delegate to SynArc correctly', () => {
+    const synarc = new SynArc(config)
+    const creator = new SynArcCreator(synarc)
+    expect(creator.supportCreator).toBeDefined()
+    expect(creator.getCreatorStats).toBeDefined()
   })
 })

@@ -6,10 +6,11 @@ import {
   parseUnits,
   formatUnits,
   fallback,
+  encodeFunctionData,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { ARC_TESTNET } from './constants'
-import { SynArcConfig, ProposalParams, VoteChoice, TreasuryBalance } from './types'
+import { SynArcConfig, ProposalParams, VoteChoice, TreasuryBalance, CreatorStats } from './types'
 import { GOVERNOR_ABI, TREASURY_ABI, TOKEN_ABI, ERC20_ABI } from './abis'
 
 export class SynArc {
@@ -83,10 +84,37 @@ export class SynArc {
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
 
-    const description = `${params.title}\n\n${params.description}`
-    const targets = params.targets || ['0x0000000000000000000000000000000000000000' as `0x${string}`]
-    const values = params.values || [0n]
-    const calldatas = params.calldatas || ['0x' as `0x${string}`]
+    let targets = params.targets || ['0x0000000000000000000000000000000000000000' as `0x${string}`]
+    let values = params.values || [0n]
+    let calldatas = params.calldatas || ['0x' as `0x${string}`]
+    let descriptionDetail = params.description
+
+    if (params.template === 'funding') {
+      const recipient = params.templateParams?.recipient
+      const amount = params.templateParams?.amountUSDC
+      if (!recipient || amount === undefined) {
+        throw new Error("Funding template requires 'recipient' and 'amountUSDC' parameters.")
+      }
+
+      const amountRaw = parseUnits(amount.toString(), 6)
+      // Encode withdraw(recipient, amount) to Treasury
+      const withdrawCalldata = encodeFunctionData({
+        abi: TREASURY_ABI,
+        functionName: 'withdraw',
+        args: [recipient, amountRaw],
+      })
+
+      targets = [this.config.treasuryAddress]
+      values = [0n]
+      calldatas = [withdrawCalldata]
+      descriptionDetail = `[Creator Funding Request: ${amount} USDC to ${recipient}]\n\n${params.description}`
+    } else if (params.template === 'milestone') {
+      const milestoneId = params.templateParams?.milestoneId || 0
+      const milestoneTitle = params.templateParams?.milestoneTitle || 'Milestone Completion'
+      descriptionDetail = `[Creator Milestone #${milestoneId} Release Request: ${milestoneTitle}]\n\n${params.description}`
+    }
+
+    const description = `${params.title}\n\n${descriptionDetail}`
 
     const txHash = await this.walletClient.writeContract({
       address: this.config.governorAddress,
@@ -270,6 +298,48 @@ export class SynArc {
     })
     await this.publicClient.waitForTransactionReceipt({ hash: depositTx })
     return depositTx
+  }
+
+  // ─── CREATOR ECONOMY & NANOPAYMENTS ─────────────────────
+
+  async supportCreator(creatorWallet: `0x${string}`, amount: string | number): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const amountRaw = parseUnits(amount.toString(), 6)
+    const usdcAddress = this.config.usdcAddress || '0x3600000000000000000000000000000000000000'
+
+    // Send direct USDC nanopayment
+    const txHash = await this.walletClient.writeContract({
+      address: usdcAddress,
+      abi: ERC20_ABI,
+      functionName: 'transfer',
+      args: [creatorWallet, amountRaw],
+      account: address,
+      gas: 120000n,
+      gasPrice: 10000000n,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async getCreatorStats(creatorWallet: `0x${string}`): Promise<CreatorStats> {
+    const usdcAddress = this.config.usdcAddress || '0x3600000000000000000000000000000000000000'
+    const [power, usdc] = await Promise.all([
+      this.getVotingPower(creatorWallet),
+      this.publicClient.readContract({
+        address: usdcAddress,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [creatorWallet],
+      }),
+    ])
+
+    return {
+      votingPower: power,
+      balanceUSDC: formatUnits(usdc as bigint, 6),
+    }
   }
 
   // ─── HELPERS ───────────────────────────────────────────
