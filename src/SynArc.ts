@@ -10,11 +10,22 @@ import {
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { ARC_TESTNET } from './constants'
-import { SynArcConfig, ProposalParams, VoteChoice, TreasuryBalance, CreatorStats } from './types'
+import {
+  SynArcConfig,
+  ProposalParams,
+  VoteChoice,
+  TreasuryBalance,
+  CreatorStats,
+  CreatorDAOParams,
+  CreatorProfile,
+  CreatorCampaign,
+  CreatorDAOTemplate,
+} from './types'
 import { GOVERNOR_ABI, TREASURY_ABI, TOKEN_ABI, ERC20_ABI } from './abis'
 
 export class SynArc {
   private config: SynArcConfig
+  private privateKeyAccount: any = null
   public publicClient: any
   public walletClient: any | null = null
   public walletType: string = 'read-only'
@@ -39,6 +50,7 @@ export class SynArc {
     if (config.privateKey) {
       // AI Agent — private key
       const account = privateKeyToAccount(config.privateKey)
+      this.privateKeyAccount = account
       this.walletClient = createWalletClient({
         account,
         chain: ARC_TESTNET,
@@ -72,6 +84,9 @@ export class SynArc {
 
   // Get connected address
   async getAddress(): Promise<`0x${string}` | null> {
+    if (this.walletType === 'private-key' && this.privateKeyAccount) {
+      return this.privateKeyAccount.address
+    }
     if (!this.walletClient) return null
     const [address] = await this.walletClient.getAddresses()
     return address || null
@@ -96,7 +111,7 @@ export class SynArc {
         throw new Error("Funding template requires 'recipient' and 'amountUSDC' parameters.")
       }
 
-      const amountRaw = parseUnits(amount.toString(), 6)
+      const amountRaw = parseUnits(amount.toString() as `${number}`, 6)
       // Encode withdraw(recipient, amount) to Treasury
       const withdrawCalldata = encodeFunctionData({
         abi: TREASURY_ABI,
@@ -121,9 +136,7 @@ export class SynArc {
       abi: GOVERNOR_ABI,
       functionName: 'propose',
       args: [targets, values, calldatas, description],
-      account: address,
-      gas: 500000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -145,9 +158,7 @@ export class SynArc {
       abi: GOVERNOR_ABI,
       functionName: 'castVote',
       args: [BigInt(proposalId), support],
-      account: address,
-      gas: 300000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -165,9 +176,7 @@ export class SynArc {
       abi: TOKEN_ABI,
       functionName: 'delegate',
       args: [target],
-      account: address,
-      gas: 100000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -238,7 +247,7 @@ export class SynArc {
     this.requireWallet()
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
-    const amountRaw = parseUnits(amount, 6)
+    const amountRaw = parseUnits(amount as `${number}`, 6)
     const usdcAddress = this.config.usdcAddress || '0x3600000000000000000000000000000000000000'
 
     // Approve
@@ -247,9 +256,7 @@ export class SynArc {
       abi: ERC20_ABI,
       functionName: 'approve',
       args: [this.config.treasuryAddress, amountRaw],
-      account: address,
-      gas: 100000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
     await this.publicClient.waitForTransactionReceipt({ hash: approveTx })
 
@@ -259,9 +266,7 @@ export class SynArc {
       abi: TREASURY_ABI,
       functionName: 'depositUSDC',
       args: [amountRaw],
-      account: address,
-      gas: 200000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
     await this.publicClient.waitForTransactionReceipt({ hash: depositTx })
     return depositTx
@@ -271,7 +276,7 @@ export class SynArc {
     this.requireWallet()
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
-    const amountRaw = parseUnits(amount, 6)
+    const amountRaw = parseUnits(amount as `${number}`, 6)
     const eurcAddress = this.config.eurcAddress || '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a'
 
     // Approve
@@ -280,9 +285,7 @@ export class SynArc {
       abi: ERC20_ABI,
       functionName: 'approve',
       args: [this.config.treasuryAddress, amountRaw],
-      account: address,
-      gas: 100000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
     await this.publicClient.waitForTransactionReceipt({ hash: approveTx })
 
@@ -292,9 +295,7 @@ export class SynArc {
       abi: TREASURY_ABI,
       functionName: 'depositEURC',
       args: [amountRaw],
-      account: address,
-      gas: 200000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
     await this.publicClient.waitForTransactionReceipt({ hash: depositTx })
     return depositTx
@@ -306,7 +307,7 @@ export class SynArc {
     this.requireWallet()
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
-    const amountRaw = parseUnits(amount.toString(), 6)
+    const amountRaw = parseUnits(amount.toString() as `${number}`, 6)
     const usdcAddress = this.config.usdcAddress || '0x3600000000000000000000000000000000000000'
 
     // Send direct USDC nanopayment
@@ -315,9 +316,7 @@ export class SynArc {
       abi: ERC20_ABI,
       functionName: 'transfer',
       args: [creatorWallet, amountRaw],
-      account: address,
-      gas: 120000n,
-      gasPrice: 10000000n,
+      account: this.getSigner(address),
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -342,12 +341,185 @@ export class SynArc {
     }
   }
 
+  /**
+   * createCreatorDAO
+   * Launches a new Creator DAO by submitting an on-chain governance proposal.
+   * The proposal encodes a treasury withdrawal (the funding goal) to the creator's wallet.
+   * Token holders vote to approve the campaign; execution releases the funds.
+   */
+  async createCreatorDAO(params: CreatorDAOParams): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const recipient = params.recipient || address
+    const goalRaw = parseUnits(params.goalUSDC.toString() as `${number}`, 6)
+    const template: CreatorDAOTemplate = params.template || 'general'
+
+    // Encode treasury withdraw call as the proposal action
+    const withdrawCalldata = encodeFunctionData({
+      abi: TREASURY_ABI,
+      functionName: 'withdraw',
+      args: [recipient, goalRaw],
+    })
+
+    // Build milestone text if provided
+    const milestoneText = params.milestones && params.milestones.length > 0
+      ? `\n\n**Milestones:**\n${params.milestones.map((m, i) => `${i + 1}. ${m}`).join('\n')}`
+      : ''
+
+    const description =
+      `[CreatorDAO:${template.toUpperCase()}] ${params.name}\n\n` +
+      `${params.description}${milestoneText}\n\n` +
+      `Goal: ${params.goalUSDC} USDC → ${recipient}`
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.governorAddress,
+      abi: GOVERNOR_ABI,
+      functionName: 'propose',
+      args: [[this.config.treasuryAddress], [0n], [withdrawCalldata], description],
+      account: this.getSigner(address),
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * getCreatorProfile
+   * Returns on-chain stats for a creator wallet. If `creatorApiUrl` is configured,
+   * it also merges off-chain metadata (name, bio, slug, totalRaisedUSDC, supporterCount).
+   * Falls back gracefully to on-chain-only data when the API is unavailable.
+   */
+  async getCreatorProfile(slugOrAddress: string): Promise<CreatorProfile> {
+    // Resolve address — if it looks like a 0x address use it directly, else try API
+    let creatorAddress: `0x${string}` | null = null
+    let offChain: Partial<CreatorProfile> = {}
+
+    if (slugOrAddress.startsWith('0x')) {
+      creatorAddress = slugOrAddress as `0x${string}`
+    }
+
+    // Try off-chain API if configured
+    if (this.config.creatorApiUrl) {
+      try {
+        const res = await fetch(`${this.config.creatorApiUrl}/creators/${encodeURIComponent(slugOrAddress)}`)
+        if (res.ok) {
+          const data = await res.json()
+          offChain = data
+          if (!creatorAddress && data.address) {
+            creatorAddress = data.address as `0x${string}`
+          }
+        }
+      } catch (_) {
+        // Silently fall through to on-chain only
+      }
+    }
+
+    if (!creatorAddress) {
+      throw new Error(
+        `Cannot resolve creator address for "${slugOrAddress}". ` +
+        'Provide a 0x address or configure creatorApiUrl in SynArcConfig.'
+      )
+    }
+
+    const stats = await this.getCreatorStats(creatorAddress)
+
+    return {
+      address: creatorAddress,
+      slug: offChain.slug || slugOrAddress,
+      name: offChain.name || creatorAddress,
+      bio: offChain.bio || '',
+      template: offChain.template || 'general',
+      stats,
+      totalRaisedUSDC: offChain.totalRaisedUSDC || '0.00',
+      supporterCount: offChain.supporterCount || 0,
+    }
+  }
+
+  /**
+   * getCreatorCampaigns
+   * Returns a list of active Creator DAO campaigns derived from on-chain
+   * ProposalCreated events whose descriptions match the [CreatorDAO:*] tag.
+   * If `creatorApiUrl` is configured, enriched off-chain data is used instead.
+   */
+  async getCreatorCampaigns(): Promise<CreatorCampaign[]> {
+    // Try off-chain API first
+    if (this.config.creatorApiUrl) {
+      try {
+        const res = await fetch(`${this.config.creatorApiUrl}/campaigns?status=active`)
+        if (res.ok) {
+          const data = await res.json()
+          return data as CreatorCampaign[]
+        }
+      } catch (_) {
+        // Fall through to on-chain
+      }
+    }
+
+    // Derive campaigns from on-chain ProposalCreated events
+    const proposals = await this.getProposals()
+    const campaigns: CreatorCampaign[] = []
+
+    for (const p of proposals) {
+      const desc: string = p.description || ''
+      const match = desc.match(/^\[CreatorDAO:([A-Z]+)\] (.+)$/m)
+      if (!match) continue
+
+      const template = match[1].toLowerCase() as CreatorDAOTemplate
+      const name = match[2].trim()
+
+      // Parse goal from description
+      const goalMatch = desc.match(/Goal:\s*([\d.]+)\s*USDC/)
+      const goalUSDC = goalMatch ? goalMatch[1] : '0'
+
+      // Parse proposalId
+      const proposalId: string = p.proposalId?.toString() || ''
+
+      // Get current state
+      let isActive = false
+      if (proposalId) {
+        try {
+          const state = await this.getProposalState(proposalId)
+          isActive = state === 'Active' || state === 'Pending'
+        } catch (_) {}
+      }
+
+      // Parse milestones from description
+      const milestoneMatches = [...desc.matchAll(/^\d+\.\s+(.+)$/gm)]
+      const milestones = milestoneMatches.map((m, i) => ({
+        id: i + 1,
+        title: m[1].trim(),
+        completed: false,
+      }))
+
+      campaigns.push({
+        id: proposalId,
+        creatorAddress: p.proposer as `0x${string}`,
+        name,
+        description: desc.split('\n\n')[1] || '',
+        template,
+        goalUSDC,
+        raisedUSDC: '0.00',  // On-chain only: would need transfer event scanning
+        progress: 0,
+        isActive,
+        milestones,
+      })
+    }
+
+    return campaigns
+  }
+
   // ─── HELPERS ───────────────────────────────────────────
 
   private requireWallet(): void {
     if (this.isReadOnly()) {
       throw new Error('Wallet required. Provide privateKey, provider, or walletClient in config.')
     }
+  }
+
+  private getSigner(address: `0x${string}`): any {
+    return this.privateKeyAccount || address
   }
 
   private async ensureDelegated(): Promise<void> {

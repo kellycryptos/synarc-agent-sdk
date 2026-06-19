@@ -1,6 +1,6 @@
 # synarc-agent-sdk
 
-SDK for integrating SynArc Creator Economy, nanopayments, governance, and treasury on the Arc Network. 
+SDK for integrating SynArc Creator Economy, nanopayments, governance, and treasury on the Arc Network.
 Built to empower **Creators, Fans, Communities, and Autonomous AI Agents** to fund, govern, and participate in the decentralized creator economy.
 
 ---
@@ -114,6 +114,191 @@ await synarc.vote('proposalId', 'For')
 
 ---
 
+## Creator Economy
+
+The SynArc SDK is purpose-built for the **Creator Economy** — enabling individual creators, fan communities, and autonomous AI agents to raise funds, govern campaigns, and send payments entirely on-chain.
+
+### createCreatorDAO
+
+Launch a new Creator DAO by submitting an on-chain governance proposal. Token holders vote to approve the campaign; once the proposal passes and executes, USDC is released from the treasury to the creator's wallet.
+
+```typescript
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
+
+const synarc = new SynArc({
+  governorAddress: SYNARC_TESTNET.governor,
+  treasuryAddress: SYNARC_TESTNET.treasury,
+  tokenAddress: SYNARC_TESTNET.token,
+  provider: window.ethereum,
+})
+
+// Launch a music creator's campaign
+const txHash = await synarc.createCreatorDAO({
+  name: 'Lepton — Debut EP',
+  description: 'Fund the production and release of my debut EP on Arc Network.',
+  goalUSDC: 500,
+  template: 'music',
+  milestones: [
+    'Studio recording sessions complete',
+    'Mixing and mastering finalized',
+    'EP released on streaming platforms',
+  ],
+})
+console.log(`Creator DAO proposal submitted! Tx: ${txHash}`)
+```
+
+**Supported templates:** `'music'` | `'video'` | `'art'` | `'writing'` | `'software'` | `'general'`
+
+**Parameters (`CreatorDAOParams`):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string` | ✅ | Display name of the DAO / campaign |
+| `description` | `string` | ✅ | Short description of the creator's goal |
+| `goalUSDC` | `string \| number` | ✅ | Target funding amount in USDC |
+| `template` | `CreatorDAOTemplate` | — | Pre-built campaign type (default: `'general'`) |
+| `recipient` | `0x${string}` | — | Payout wallet; defaults to caller's address |
+| `milestones` | `string[]` | — | Optional milestone titles for milestone-gated funding |
+
+---
+
+### supportCreator
+
+Send a direct USDC nanopayment to a creator's wallet. Works for micro-amounts like `$0.01` or `$0.10` — ideal for Lepton-style low-latency fan micropayments.
+
+```typescript
+// Fan sends $0.10 to Lepton
+await synarc.supportCreator('0xLeptonWalletAddress', 0.10)
+
+// Fan sends $1.00
+await synarc.supportCreator('0xLeptonWalletAddress', 1.00)
+
+// AI agent sends $5.00 autonomously
+await synarc.supportCreator('0xLeptonWalletAddress', 5.00)
+```
+
+---
+
+### getCreatorProfile
+
+Fetch a creator's full profile including on-chain stats (voting power, USDC balance) merged with optional off-chain metadata (name, bio, slug, raised totals).
+
+```typescript
+// Look up by wallet address (always works)
+const profile = await synarc.getCreatorProfile('0xLeptonWalletAddress')
+
+// Look up by slug — requires creatorApiUrl in config
+const profileBySlug = await synarc.getCreatorProfile('lepton')
+
+console.log(profile.name)                // 'Lepton'
+console.log(profile.bio)                 // 'Electronic music producer...'
+console.log(profile.stats.balanceUSDC)  // '42.50'
+console.log(profile.totalRaisedUSDC)    // '1250.00'
+console.log(profile.supporterCount)     // 87
+```
+
+**With off-chain API:**
+```typescript
+const synarc = new SynArc({
+  ...SYNARC_TESTNET,
+  creatorApiUrl: 'https://api.synarcdao.xyz',
+})
+
+const profile = await synarc.getCreatorProfile('lepton')
+```
+
+**Returns (`CreatorProfile`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `address` | `0x${string}` | Creator's wallet address |
+| `slug` | `string` | Human-readable slug (e.g. `'lepton'`) |
+| `name` | `string` | Display name |
+| `bio` | `string` | Short bio |
+| `template` | `CreatorDAOTemplate` | Campaign template type |
+| `stats` | `CreatorStats` | On-chain `{ votingPower, balanceUSDC }` |
+| `totalRaisedUSDC` | `string` | All-time USDC raised |
+| `supporterCount` | `number` | Number of unique supporters |
+
+---
+
+### getCreatorCampaigns
+
+List all active Creator DAO campaigns. Scans on-chain `ProposalCreated` events for `[CreatorDAO:*]` tagged proposals, or fetches enriched data from the configured `creatorApiUrl`.
+
+```typescript
+const campaigns = await synarc.getCreatorCampaigns()
+
+campaigns.forEach(c => {
+  console.log(`${c.name} (${c.template}) — Goal: ${c.goalUSDC} USDC`)
+  console.log(`  Progress: ${c.progress}% — Active: ${c.isActive}`)
+  c.milestones.forEach(m => console.log(`  [${m.completed ? '✅' : '⬜'}] ${m.title}`))
+})
+```
+
+**Returns (`CreatorCampaign[]`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | On-chain proposal ID |
+| `creatorAddress` | `0x${string}` | Creator's wallet address |
+| `name` | `string` | Campaign name |
+| `description` | `string` | Campaign description |
+| `template` | `CreatorDAOTemplate` | Campaign type |
+| `goalUSDC` | `string` | Funding goal in USDC |
+| `raisedUSDC` | `string` | Amount raised so far |
+| `progress` | `number` | Percentage of goal (0–100) |
+| `isActive` | `boolean` | Whether accepting support |
+| `milestones` | `Array<{ id, title, completed }>` | Milestone list |
+
+---
+
+### AI Agent — Full Creator Economy Workflow
+
+```typescript
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
+
+const agent = new SynArc({
+  governorAddress: SYNARC_TESTNET.governor,
+  treasuryAddress: SYNARC_TESTNET.treasury,
+  tokenAddress: SYNARC_TESTNET.token,
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+  rpcUrl: 'https://rpc.testnet.arc.network',
+  creatorApiUrl: 'https://api.synarcdao.xyz',
+})
+
+// 1. Discover active campaigns
+const campaigns = await agent.getCreatorCampaigns()
+console.log(`Found ${campaigns.length} active Creator DAOs`)
+
+// 2. Get Lepton's profile
+const lepton = await agent.getCreatorProfile('lepton')
+console.log(`Lepton has raised ${lepton.totalRaisedUSDC} USDC from ${lepton.supporterCount} supporters`)
+
+// 3. Autonomously send a $0.50 nanopayment to support
+if (lepton.stats.balanceUSDC < '100') {
+  const tx = await agent.supportCreator(lepton.address, 0.50)
+  console.log(`Sent $0.50 nanopayment to Lepton! Tx: ${tx}`)
+}
+
+// 4. Launch a new Creator DAO for a new creator
+const daoTx = await agent.createCreatorDAO({
+  name: 'New Artist — Visual Album',
+  description: 'Funding a visual album project combining original music and short films.',
+  goalUSDC: 1000,
+  template: 'video',
+  milestones: [
+    'Script and storyboard complete',
+    'Filming wrapped',
+    'Post-production complete',
+    'Visual album released',
+  ],
+})
+console.log(`New Creator DAO launched! Tx: ${daoTx}`)
+```
+
+---
+
 ## Wallet Integrations
 
 ### MetaMask / Rabby / OKX (Injected)
@@ -183,6 +368,8 @@ The `SynArc` constructor accepts a `SynArcConfig` configuration:
 - `tokenAddress: string` — Address of the Governance Token (SynArcToken).
 - `eurcAddress?: string` — (Optional) EURC Token address on Arc Testnet.
 - `usdcAddress?: string` — (Optional) USDC Token address on Arc Testnet.
+- `canteenUsdcAddress?: string` — (Optional) CanteenUSDC wrapper contract address.
+- `creatorApiUrl?: string` — (Optional) Off-chain creator registry API for slug resolution and enriched metadata.
 - `rpcUrl?: string` — (Optional) Custom RPC node URL.
 - `privateKey?: string` — (Optional) 0x-prefixed private key for server environments (AI Agents).
 - `provider?: any` — (Optional) EIP-1193 Ethereum provider.
@@ -190,11 +377,20 @@ The `SynArc` constructor accepts a `SynArcConfig` configuration:
 
 ### Creator & Nanopayment Methods
 
+#### `createCreatorDAO(params: CreatorDAOParams): Promise<string>`
+Launches a new Creator DAO by submitting an on-chain governance proposal that encodes a treasury withdrawal to the creator's wallet. Token holders vote to approve; execution releases funds. Returns the transaction hash.
+
 #### `supportCreator(creatorWallet: string, amount: string | number): Promise<string>`
 Executes an on-chain USDC transfer transaction sending a nanopayment directly to the creator's wallet. Parses decimals automatically (6 decimals for USDC). Returns the transaction hash.
 
+#### `getCreatorProfile(slugOrAddress: string): Promise<CreatorProfile>`
+Fetches on-chain stats for a creator wallet merged with optional off-chain metadata. Accepts a 0x address (always) or human-readable slug (requires `creatorApiUrl`). Returns a full `CreatorProfile` object.
+
+#### `getCreatorCampaigns(): Promise<CreatorCampaign[]>`
+Returns all active Creator DAO campaigns. Scans on-chain `ProposalCreated` events for `[CreatorDAO:*]` tagged proposals, or fetches from `creatorApiUrl` if configured.
+
 #### `getCreatorStats(creatorWallet: string): Promise<CreatorStats>`
-Queries and returns the creator's voting power and USDC wallet balance in a single formatted object:
+Queries and returns the creator's voting power and USDC wallet balance:
 ```typescript
 interface CreatorStats {
   votingPower: string // Format: 18 decimals (SYN token)
@@ -258,7 +454,7 @@ Deposits EURC to the Treasury. Handles approval and deposit transactions.
 ## Sub-Modules
 
 To keep integrations modular, the SDK exposes sub-classes:
-- `SynArcCreator`: Exposes `supportCreator` and `getCreatorStats`.
+- `SynArcCreator`: Exposes `createCreatorDAO`, `supportCreator`, `getCreatorProfile`, `getCreatorStats`, and `getCreatorCampaigns`.
 - `SynArcGovernance`: Exposes proposal and voting functions.
 - `SynArcTreasury`: Exposes treasury balance and deposit methods.
 
@@ -271,7 +467,14 @@ const creatorHub = new SynArcCreator({
   tokenAddress: SYNARC_TESTNET.token,
 })
 
-const stats = await creatorHub.getCreatorStats('0xCreatorWallet')
+// Discover active campaigns
+const campaigns = await creatorHub.getCreatorCampaigns()
+
+// Get a creator's profile
+const profile = await creatorHub.getCreatorProfile('0xCreatorWallet')
+
+// Send a $0.01 nanopayment
+await creatorHub.supportCreator('0xCreatorWallet', 0.01)
 ```
 
 ---

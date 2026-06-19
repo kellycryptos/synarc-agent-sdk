@@ -67,4 +67,23 @@ describe('SynArc SDK tests', () => {
     expect(creator.supportCreator).toBeDefined()
     expect(creator.getCreatorStats).toBeDefined()
   })
+
+  it('should have new Creator Economy methods defined on SynArcCreator', () => {
+    const synarc = new SynArc(config)
+    const creator = new SynArcCreator(synarc)
+    expect(creator.createCreatorDAO).toBeDefined()
+    expect(creator.getCreatorProfile).toBeDefined()
+    expect(creator.getCreatorCampaigns).toBeDefined()
+  })
+
+  it('should throw an error when createCreatorDAO is called in read-only mode', async () => {
+    const synarc = new SynArc(config)
+    await expect(
+      synarc.createCreatorDAO({
+        name: 'Test DAO',
+        description: 'A test DAO description',
+        goalUSDC: '500',
+      })
+    ).rejects.toThrow('Wallet required')
+  })
 })
