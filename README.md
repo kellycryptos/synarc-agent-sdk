@@ -299,6 +299,93 @@ console.log(`New Creator DAO launched! Tx: ${daoTx}`)
 
 ---
 
+## Treasury Agent
+
+The SynArc SDK provides a built-in **Treasury Rebalancer Agent** submodule. This allows developers to construct autonomous AI agents that monitor treasury funds, propose rebalances, and execute cross-chain USDC bridging via Circle's Cross-Chain Transfer Protocol (CCTP).
+
+### 1. Monitor Treasury
+Query the current treasury balance and automatically identify rebalancing opportunities based on configured threshold parameters:
+```typescript
+import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
+
+const synarc = new SynArc({
+  ...SYNARC_TESTNET,
+  rebalanceThresholdUSDC: 50000, // Trigger rebalance suggestion when USDC > 50,000
+})
+
+const check = await synarc.monitorTreasury()
+if (check.needsRebalance) {
+  console.log(`Recommendation: Bridge ${check.suggestedAmountUSDC} USDC to ${check.suggestedTargetChain}`)
+}
+```
+
+### 2. Propose Rebalance
+Submit a governance proposal to rebalance a specified amount of treasury USDC. This proposes to withdraw the USDC to the executor/agent wallet so that it can be bridged:
+```typescript
+const txHash = await synarc.createRebalanceProposal({
+  amountUSDC: 25000,
+  targetChain: 'Arbitrum',
+  targetDomain: 3, // Circle CCTP Domain ID for Arbitrum
+  mintRecipient: '0xRecipientAddressOnArbitrum',
+  reason: 'Optimize yield opportunities and secure treasury allocations.',
+})
+console.log(`Rebalance proposal submitted! Tx: ${txHash}`)
+```
+
+### 3. Execute CCTP Rebalance
+Once the proposal passes voting and is executed on-chain, the agent wallet receives the treasury USDC. The agent then calls `approve` and executes Circle's CCTP `depositForBurn` to bridge the funds:
+```typescript
+const agent = new SynArc({
+  ...SYNARC_TESTNET,
+  tokenMessengerAddress: '0xCircleTokenMessengerAddress',
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+})
+
+const bridgeTx = await agent.executeCCTPRebalance('proposalId')
+console.log(`Cross-chain rebalance initiated! CCTP Tx: ${bridgeTx}`)
+```
+
+### 4. Full Autonomous Agent Workflow
+```typescript
+import { SynArc, SYNARC_TESTNET, SynArcTreasuryAgent } from 'synarc-agent-sdk'
+
+const synarc = new SynArc({
+  ...SYNARC_TESTNET,
+  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e', // CCTP Messenger
+  rebalanceThresholdUSDC: 50000,
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+  rpcUrl: 'https://rpc.testnet.arc.network',
+})
+
+const rebalancer = new SynArcTreasuryAgent(synarc)
+
+// 1. Monitor Treasury
+const status = await rebalancer.monitorTreasury()
+if (status.needsRebalance) {
+  // 2. Submit proposal autonomously
+  const proposalTx = await rebalancer.createRebalanceProposal({
+    amountUSDC: status.suggestedAmountUSDC,
+    targetChain: status.suggestedTargetChain,
+    targetDomain: status.suggestedTargetDomain,
+    mintRecipient: '0xAgentRecipientWalletOnEthereum',
+    reason: status.reason,
+  })
+  console.log(`Rebalance proposed: ${proposalTx}`)
+}
+
+// 3. Inspect actions log
+const actions = await rebalancer.getAgentActions()
+for (const action of actions) {
+  if (action.status === 'Executed' && action.type === 'RebalanceProposed') {
+    // 4. Execute CCTP rebalance autonomously
+    const bridgeTx = await rebalancer.executeCCTPRebalance(action.id)
+    console.log(`Executed CCTP bridge for proposal ${action.id}. Tx: ${bridgeTx}`)
+  }
+}
+```
+
+---
+
 ## Wallet Integrations
 
 ### MetaMask / Rabby / OKX (Injected)
@@ -368,7 +455,8 @@ The `SynArc` constructor accepts a `SynArcConfig` configuration:
 - `tokenAddress: string` — Address of the Governance Token (SynArcToken).
 - `eurcAddress?: string` — (Optional) EURC Token address on Arc Testnet.
 - `usdcAddress?: string` — (Optional) USDC Token address on Arc Testnet.
-- `canteenUsdcAddress?: string` — (Optional) CanteenUSDC wrapper contract address.
+- `tokenMessengerAddress?: string` — (Optional) Circle CCTP Token Messenger contract address.
+- `rebalanceThresholdUSDC?: string | number` — (Optional) USDC threshold triggering rebalance monitoring suggestions.
 - `creatorApiUrl?: string` — (Optional) Off-chain creator registry API for slug resolution and enriched metadata.
 - `rpcUrl?: string` — (Optional) Custom RPC node URL.
 - `privateKey?: string` — (Optional) 0x-prefixed private key for server environments (AI Agents).
@@ -397,6 +485,20 @@ interface CreatorStats {
   balanceUSDC: string // Format: 6 decimals (USDC token)
 }
 ```
+
+### Treasury Agent Methods
+
+#### `createRebalanceProposal(params: RebalanceProposalParams): Promise<string>`
+Submits an on-chain governance proposal to withdraw a specified amount of treasury USDC to the agent's executor wallet. Once the proposal passes, the agent can bridge the funds. Returns the transaction hash.
+
+#### `executeCCTPRebalance(proposalId: string): Promise<string>`
+Calls USDC approval and the CCTP `TokenMessenger` contract's `depositForBurn` function to initiate a cross-chain transfer of the rebalanced funds. Must be called after the corresponding governance proposal is Executed. Returns the transaction hash.
+
+#### `monitorTreasury(): Promise<MonitorTreasuryResult>`
+Queries treasury USDC balances and evaluates them against the configured threshold, suggesting rebalances and target domain details.
+
+#### `getAgentActions(): Promise<AgentAction[]>`
+Scans ProposalCreated events to return a history of all proposed and executed treasury rebalances.
 
 ### Governance Methods
 
@@ -457,24 +559,20 @@ To keep integrations modular, the SDK exposes sub-classes:
 - `SynArcCreator`: Exposes `createCreatorDAO`, `supportCreator`, `getCreatorProfile`, `getCreatorStats`, and `getCreatorCampaigns`.
 - `SynArcGovernance`: Exposes proposal and voting functions.
 - `SynArcTreasury`: Exposes treasury balance and deposit methods.
+- `SynArcTreasuryAgent`: Exposes `monitorTreasury`, `createRebalanceProposal`, `executeCCTPRebalance`, and `getAgentActions`.
 
 ```typescript
-import { SynArcCreator, SYNARC_TESTNET } from 'synarc-agent-sdk'
+import { SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
-const creatorHub = new SynArcCreator({
+const agent = new SynArcTreasuryAgent({
   governorAddress: SYNARC_TESTNET.governor,
   treasuryAddress: SYNARC_TESTNET.treasury,
   tokenAddress: SYNARC_TESTNET.token,
+  tokenMessengerAddress: '0xCircleMessengerAddress',
 })
 
-// Discover active campaigns
-const campaigns = await creatorHub.getCreatorCampaigns()
-
-// Get a creator's profile
-const profile = await creatorHub.getCreatorProfile('0xCreatorWallet')
-
-// Send a $0.01 nanopayment
-await creatorHub.supportCreator('0xCreatorWallet', 0.01)
+// Monitor rebalance recommendations
+const report = await agent.monitorTreasury()
 ```
 
 ---

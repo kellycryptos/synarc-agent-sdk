@@ -20,8 +20,11 @@ import {
   CreatorProfile,
   CreatorCampaign,
   CreatorDAOTemplate,
+  RebalanceProposalParams,
+  AgentAction,
+  MonitorTreasuryResult,
 } from './types'
-import { GOVERNOR_ABI, TREASURY_ABI, TOKEN_ABI, ERC20_ABI } from './abis'
+import { GOVERNOR_ABI, TREASURY_ABI, TOKEN_ABI, ERC20_ABI, TOKEN_MESSENGER_ABI } from './abis'
 
 export class SynArc {
   private config: SynArcConfig
@@ -508,6 +511,197 @@ export class SynArc {
     }
 
     return campaigns
+  }
+
+  // ─── TREASURY REBALANCER AGENT ───────────────────────────
+
+  /**
+   * createRebalanceProposal
+   * Creates a governance proposal to rebalance a specified amount of treasury USDC.
+   * Proposes to withdraw the USDC to the executor/agent wallet to prepare for CCTP.
+   */
+  async createRebalanceProposal(params: RebalanceProposalParams): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const amountRaw = parseUnits(params.amountUSDC.toString() as `${number}`, 6)
+    const agentAddress = this.privateKeyAccount?.address || address
+
+    // Encode withdrawUSDC(recipient, amount) to Treasury
+    const withdrawCalldata = encodeFunctionData({
+      abi: TREASURY_ABI,
+      functionName: 'withdrawUSDC',
+      args: [agentAddress, amountRaw],
+    })
+
+    const title = params.title || `Treasury Rebalance: Move ${params.amountUSDC} USDC to ${params.targetChain}`
+    const description = 
+      `${title}\n\n` +
+      `[TreasuryRebalance]\n` +
+      `Amount: ${params.amountUSDC} USDC\n` +
+      `Target Chain: ${params.targetChain}\n` +
+      `Target Domain: ${params.targetDomain}\n` +
+      `Recipient: ${params.mintRecipient}\n` +
+      `Reason: ${params.reason}`
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.governorAddress,
+      abi: GOVERNOR_ABI,
+      functionName: 'propose',
+      args: [[this.config.treasuryAddress], [0n], [withdrawCalldata], description],
+      account: this.getSigner(address),
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * executeCCTPRebalance
+   * Executes the Circle CCTP cross-chain transfer of USDC.
+   * Must be called after the corresponding governance rebalance proposal passes and executes,
+   * which transfers the treasury USDC into the agent's executor wallet.
+   */
+  async executeCCTPRebalance(proposalId: string): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    // Find the proposal to extract rebalance details
+    const proposals = await this.getProposals()
+    const proposal = proposals.find(p => p.proposalId?.toString() === proposalId)
+    if (!proposal) {
+      throw new Error(`Proposal with ID ${proposalId} not found.`)
+    }
+
+    const state = await this.getProposalState(proposalId)
+    if (state !== 'Executed') {
+      throw new Error(`Cannot execute CCTP rebalance. Proposal state is "${state}", expected "Executed".`)
+    }
+
+    const desc: string = proposal.description || ''
+    const amountMatch = desc.match(/Amount:\s*([\d.]+)\s*USDC/)
+    const domainMatch = desc.match(/Target Domain:\s*(\d+)/)
+    const recipientMatch = desc.match(/Recipient:\s*(0x[a-fA-F0-9]{40})/)
+
+    if (!amountMatch || !domainMatch || !recipientMatch) {
+      throw new Error('Failed to parse rebalance details from proposal description.')
+    }
+
+    const amountUSDC = amountMatch[1]
+    const targetDomain = parseInt(domainMatch[1], 10)
+    const mintRecipient = recipientMatch[1] as `0x${string}`
+
+    const amountRaw = parseUnits(amountUSDC as `${number}`, 6)
+    const usdcAddress = this.config.usdcAddress || '0x3600000000000000000000000000000000000000'
+    const tokenMessengerAddress = this.config.tokenMessengerAddress
+
+    if (!tokenMessengerAddress) {
+      throw new Error('tokenMessengerAddress must be configured in SynArcConfig to execute CCTP')
+    }
+
+    // 1. Approve USDC transfer to CCTP TokenMessenger
+    const approveTx = await this.walletClient.writeContract({
+      address: usdcAddress,
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [tokenMessengerAddress, amountRaw],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: approveTx })
+
+    // 2. Format recipient address to 32 bytes
+    const recipientBytes32 = ('0x' + mintRecipient.slice(2).padStart(64, '0')) as `0x${string}`
+
+    // 3. Initiate burn and bridge transfer
+    const bridgeTx = await this.walletClient.writeContract({
+      address: tokenMessengerAddress,
+      abi: TOKEN_MESSENGER_ABI,
+      functionName: 'depositForBurn',
+      args: [amountRaw, targetDomain, recipientBytes32, usdcAddress],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: bridgeTx })
+
+    return bridgeTx
+  }
+
+  /**
+   * monitorTreasury
+   * Queries treasury balances and compares current USDC against target threshold limits,
+   * returning rebalance suggestions if action is needed.
+   */
+  async monitorTreasury(): Promise<MonitorTreasuryResult> {
+    const balances = await this.getTreasuryBalance()
+    const currentBalanceUSDC = parseFloat(balances.usdc)
+
+    const threshold = this.config.rebalanceThresholdUSDC !== undefined
+      ? parseFloat(this.config.rebalanceThresholdUSDC.toString())
+      : 10000.0
+
+    const needsRebalance = currentBalanceUSDC > threshold
+    const suggestedAmountUSDC = needsRebalance
+      ? (currentBalanceUSDC * 0.5).toFixed(2)
+      : '0.00'
+
+    return {
+      needsRebalance,
+      currentBalanceUSDC: balances.usdc,
+      suggestedAmountUSDC,
+      suggestedTargetChain: 'Ethereum',
+      suggestedTargetDomain: 0,
+      reason: needsRebalance
+        ? `USDC treasury balance of ${balances.usdc} exceeds the threshold of ${threshold}. Rebalancing recommended.`
+        : 'USDC treasury balance is within healthy limits.'
+    }
+  }
+
+  /**
+   * getAgentActions
+   * Retrieves a history of all treasury rebalance proposal and bridge execution events.
+   */
+  async getAgentActions(): Promise<AgentAction[]> {
+    const proposals = await this.getProposals()
+    const actions: AgentAction[] = []
+
+    for (const p of proposals) {
+      const desc: string = p.description || ''
+      if (!desc.includes('[TreasuryRebalance]')) continue
+
+      const amountMatch = desc.match(/Amount:\s*([\d.]+)\s*USDC/)
+      const chainMatch = desc.match(/Target Chain:\s*([^\n]+)/)
+      const domainMatch = desc.match(/Target Domain:\s*(\d+)/)
+      const recipientMatch = desc.match(/Recipient:\s*(0x[a-fA-F0-9]{40})/)
+
+      if (!amountMatch || !chainMatch || !domainMatch || !recipientMatch) continue
+
+      const amountUSDC = amountMatch[1]
+      const targetChain = chainMatch[1].trim()
+      const targetDomain = parseInt(domainMatch[1], 10)
+      const recipient = recipientMatch[1] as `0x${string}`
+      const proposalId = p.proposalId?.toString() || ''
+
+      let state = 'Unknown'
+      if (proposalId) {
+        try {
+          state = await this.getProposalState(proposalId)
+        } catch (_) {}
+      }
+
+      actions.push({
+        id: proposalId,
+        type: state === 'Executed' ? 'RebalanceExecuted' : 'RebalanceProposed',
+        amountUSDC,
+        targetChain,
+        targetDomain,
+        recipient,
+        status: state,
+        timestamp: Number(p.startBlock || 0n)
+      })
+    }
+
+    return actions
   }
 
   // ─── HELPERS ───────────────────────────────────────────

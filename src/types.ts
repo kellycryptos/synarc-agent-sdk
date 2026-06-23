@@ -9,6 +9,11 @@ export interface SynArcConfig {
   // Optional off-chain creator registry API for getCreatorProfile / getCreatorCampaigns
   creatorApiUrl?: string
 
+  // Optional Circle CCTP Token Messenger contract address
+  tokenMessengerAddress?: `0x${string}`
+  // Optional USDC threshold for triggering rebalance monitoring recommendations
+  rebalanceThresholdUSDC?: string | number
+
   // Choose ONE of these wallet options:
   privateKey?: `0x${string}`     // AI agents — server side
   provider?: any                  // Any EIP-1193 provider — browser wallets
@@ -132,4 +137,59 @@ export interface TreasuryBalance {
   usdc: string
   eurc: string
   totalUSD: string
+}
+
+// ─── TREASURY REBALANCER AGENT ───────────────────────────
+
+export interface RebalanceProposalParams {
+  /** The amount of USDC to rebalance */
+  amountUSDC: string | number
+  /** The source chain name (e.g. 'Arc') */
+  sourceChain?: string
+  /** The target chain name (e.g. 'Ethereum') */
+  targetChain: string
+  /** Circle CCTP Domain ID of target chain */
+  targetDomain: number
+  /** Recipient address on target chain */
+  mintRecipient: `0x${string}`
+  /** Reason for the rebalance */
+  reason: string
+  /** Optional custom title for the rebalance proposal */
+  title?: string
+}
+
+export interface AgentAction {
+  /** The proposal ID associated with the rebalance action */
+  id: string
+  /** Action type: proposed or executed CCTP transfer */
+  type: 'RebalanceProposed' | 'RebalanceExecuted'
+  /** Amount in USDC */
+  amountUSDC: string
+  /** Destination chain name */
+  targetChain: string
+  /** Destination CCTP domain ID */
+  targetDomain: number
+  /** Recipient address on destination chain */
+  recipient: `0x${string}`
+  /** Governance proposal status (e.g. 'Executed', 'Active', 'Defeated') */
+  status: string
+  /** Transaction hash of CCTP execution, if applicable */
+  txHash?: string
+  /** Block number proxy or timestamp */
+  timestamp: number
+}
+
+export interface MonitorTreasuryResult {
+  /** Whether the treasury needs rebalancing based on USDC threshold */
+  needsRebalance: boolean
+  /** Current USDC balance in treasury */
+  currentBalanceUSDC: string
+  /** Suggested USDC amount to bridge */
+  suggestedAmountUSDC: string
+  /** Recommended destination chain */
+  suggestedTargetChain: string
+  /** Recommended destination CCTP domain ID */
+  suggestedTargetDomain: number
+  /** Human-readable explanation of recommendation */
+  reason: string
 }

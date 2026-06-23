@@ -1,6 +1,6 @@
 {
   "name": "synarc-agent-sdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "SDK for integrating SynArc Creator Economy, nanopayments, governance, and treasury on Arc Network",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

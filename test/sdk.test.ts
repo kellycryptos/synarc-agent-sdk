@@ -4,6 +4,7 @@ import {
   SynArcGovernance,
   SynArcTreasury,
   SynArcCreator,
+  SynArcTreasuryAgent,
   SYNARC_TESTNET,
   ARC_TESTNET,
 } from '../src/index'
@@ -84,6 +85,34 @@ describe('SynArc SDK tests', () => {
         description: 'A test DAO description',
         goalUSDC: '500',
       })
+    ).rejects.toThrow('Wallet required')
+  })
+
+  it('should instantiate SynArcTreasuryAgent and delegate correctly', () => {
+    const synarc = new SynArc(config)
+    const agent = new SynArcTreasuryAgent(synarc)
+    expect(agent.createRebalanceProposal).toBeDefined()
+    expect(agent.executeCCTPRebalance).toBeDefined()
+    expect(agent.monitorTreasury).toBeDefined()
+    expect(agent.getAgentActions).toBeDefined()
+  })
+
+  it('should throw an error when executing rebalance or proposing in read-only mode', async () => {
+    const synarc = new SynArc(config)
+    const agent = new SynArcTreasuryAgent(synarc)
+    
+    await expect(
+      agent.createRebalanceProposal({
+        amountUSDC: '1000',
+        targetChain: 'Ethereum',
+        targetDomain: 0,
+        mintRecipient: '0x0000000000000000000000000000000000000000',
+        reason: 'Test rebalance'
+      })
+    ).rejects.toThrow('Wallet required')
+
+    await expect(
+      agent.executeCCTPRebalance('1')
     ).rejects.toThrow('Wallet required')
   })
 })
