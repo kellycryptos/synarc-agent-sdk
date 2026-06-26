@@ -14,6 +14,9 @@ export interface SynArcConfig {
   // Optional USDC threshold for triggering rebalance monitoring recommendations
   rebalanceThresholdUSDC?: string | number
 
+  // Optional on-chain agent contract address
+  agentAddress?: `0x${string}`
+
   // Choose ONE of these wallet options:
   privateKey?: `0x${string}`     // AI agents — server side
   provider?: any                  // Any EIP-1193 provider — browser wallets
@@ -58,14 +61,26 @@ export interface CreatorDAOParams {
   name: string
   /** Short description of the creator's goal */
   description: string
+  /** Target amount in USDC to raise (alias for goal) */
+  goalUSDC?: string | number
   /** Target amount in USDC to raise */
-  goalUSDC: string | number
+  goal?: string | number
   /** Pre-built campaign template type */
   template?: CreatorDAOTemplate
-  /** Optional: recipient wallet; defaults to the caller's address */
+  /** Optional: recipient wallet; defaults to the caller's address (alias for recipientWallet) */
   recipient?: `0x${string}`
+  /** Optional: recipient wallet; defaults to the caller's address */
+  recipientWallet?: `0x${string}`
   /** Optional: milestone titles for milestone-gated funding */
   milestones?: string[]
+  /** Optional: duration of the campaign in days */
+  durationDays?: number
+  /** Optional: cover image URL */
+  imageUrl?: string
+  /** Optional: whether this campaign is for an autonomous AI agent */
+  isAgent?: boolean
+  /** Optional: campaign category override */
+  category?: string
 }
 
 export interface CreatorProfile {
@@ -193,3 +208,53 @@ export interface MonitorTreasuryResult {
   /** Human-readable explanation of recommendation */
   reason: string
 }
+
+export interface QueuedWithdrawal {
+  id: bigint
+  recipient: `0x${string}`
+  amount: bigint
+  token: `0x${string}`
+  tokenSymbol: string
+  description: string
+  executionTime: bigint
+  executed: boolean
+  canceled: boolean
+}
+
+export interface QueuedAgentWithdrawal {
+  id: bigint
+  token: `0x${string}`
+  recipient: `0x${string}`
+  amount: bigint
+  executionTime: bigint
+  executed: boolean
+  canceled: boolean
+}
+
+export interface CreatorDAOMilestone {
+  title: string
+  amount: string
+  description: string
+  status: 'pending' | 'active' | 'completed'
+}
+
+export interface CreatorDAO {
+  id: string
+  title: string
+  description: string
+  category: string
+  goal: string
+  raised: string
+  contributors: number
+  state: 'Active' | 'Voting' | 'Completed' | 'Refunded'
+  isAgent: boolean
+  creator: `0x${string}`
+  recipient: `0x${string}`
+  deadline: string
+  milestones: CreatorDAOMilestone[]
+  escrowAddress: `0x${string}`
+  imageUrl?: string
+  twitter?: string | null
+}
+
+

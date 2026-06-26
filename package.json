@@ -1,7 +1,7 @@
 {
   "name": "synarc-agent-sdk",
-  "version": "0.4.0",
-  "description": "SDK for integrating SynArc Creator Economy, nanopayments, governance, and treasury on Arc Network",
+  "version": "0.5.0",
+  "description": "SDK for integrating SynArc Creator DAOs, nanopayments, governance, and treasury on Arc Network",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -17,14 +17,15 @@
   "keywords": [
     "synarc",
     "dao",
+    "creator-dao",
     "governance",
     "arc",
     "usdc",
     "web3",
     "creator",
+    "treasury-agent",
     "nanopayments",
     "micropayments",
-    "lepton",
     "fan-support"
   ],
   "author": "kellycryptos",

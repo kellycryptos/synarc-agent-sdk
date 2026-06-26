@@ -1,10 +1,10 @@
 import { SynArc } from './SynArc'
-import { SynArcConfig, CreatorStats, CreatorDAOParams, CreatorProfile, CreatorCampaign } from './types'
+import { SynArcConfig, CreatorStats, CreatorDAOParams, CreatorProfile, CreatorCampaign, CreatorDAO } from './types'
 
 /**
  * SynArcCreator
  * Focused facade for Creator Economy interactions — nanopayments,
- * Creator DAO creation, creator profiles, and campaign discovery.
+ * Creator DAO deployment, creator profiles, and campaign discovery.
  * Wraps the core SynArc client and delegates all calls to it.
  */
 export class SynArcCreator {
@@ -20,18 +20,49 @@ export class SynArcCreator {
 
   /**
    * createCreatorDAO
-   * Launches a new Creator DAO by submitting an on-chain governance proposal.
-   * Token holders vote to approve the campaign; execution releases funds to the creator.
-   * @returns Transaction hash of the proposal submission.
+   * Deploys a SynArcCrowdfund escrow contract directly from the user's wallet.
+   * Matches the main site's create-dao wizard flow.
+   * @returns Transaction hash of the contract deployment.
    */
   async createCreatorDAO(params: CreatorDAOParams): Promise<string> {
     return this.synarc.createCreatorDAO(params)
   }
 
   /**
+   * supportCreatorDAO
+   * Approves and sends USDC to a deployed SynArcCrowdfund escrow contract.
+   * @param daoAddress - The escrow contract address of the Creator DAO.
+   * @param amount - Amount in USDC (e.g. 5, 10, 100).
+   * @returns Transaction hash.
+   */
+  async supportCreatorDAO(daoAddress: `0x${string}`, amount: string | number): Promise<string> {
+    return this.synarc.supportCreatorDAO(daoAddress, amount)
+  }
+
+  /**
+   * getCreatorDAO
+   * Returns on-chain data for a specific Creator DAO escrow contract.
+   * @param daoAddress - The escrow contract address.
+   * @returns CreatorDAO object with title, goal, raised, milestones, etc.
+   */
+  async getCreatorDAO(daoAddress: `0x${string}`): Promise<CreatorDAO> {
+    return this.synarc.getCreatorDAO(daoAddress)
+  }
+
+  /**
+   * getCreatorDAOs
+   * Returns a list of Creator DAO campaigns from the configured API,
+   * or an empty array if no API is configured (on-chain discovery requires an indexer).
+   * @returns Array of CreatorDAO objects.
+   */
+  async getCreatorDAOs(): Promise<CreatorDAO[]> {
+    return this.synarc.getCreatorDAOs()
+  }
+
+  /**
    * supportCreator
    * Sends a direct USDC nanopayment to a creator's wallet.
-   * Accepts any amount, including micro-payments like $0.01 or $0.10.
+   * For funding an escrow campaign, use supportCreatorDAO instead.
    * @param creatorWallet - The creator's 0x wallet address.
    * @param amount - Amount in USDC (e.g. 0.01, 5, 100).
    * @returns Transaction hash.
@@ -44,7 +75,7 @@ export class SynArcCreator {
    * getCreatorProfile
    * Fetches a creator's on-chain stats merged with optional off-chain metadata.
    * Accepts either a 0x wallet address or a human-readable slug (requires creatorApiUrl).
-   * @param slugOrAddress - Creator slug (e.g. 'lepton') or 0x wallet address.
+   * @param slugOrAddress - Creator slug or 0x wallet address.
    * @returns Full CreatorProfile object.
    */
   async getCreatorProfile(slugOrAddress: string): Promise<CreatorProfile> {
@@ -64,11 +95,10 @@ export class SynArcCreator {
   /**
    * getCreatorCampaigns
    * Returns a list of active Creator DAO campaigns.
-   * Scans on-chain ProposalCreated events for [CreatorDAO:*] tagged proposals,
-   * or fetches enriched data from the configured creatorApiUrl if available.
-   * @returns Array of CreatorCampaign objects.
+   * Delegates to getCreatorDAOs — provided for backward compatibility.
+   * @returns Array of CreatorDAO objects.
    */
-  async getCreatorCampaigns(): Promise<CreatorCampaign[]> {
-    return this.synarc.getCreatorCampaigns()
+  async getCreatorCampaigns(): Promise<CreatorDAO[]> {
+    return this.synarc.getCreatorDAOs()
   }
 }

@@ -1,5 +1,5 @@
 import { SynArc } from './SynArc'
-import { SynArcConfig, RebalanceProposalParams, MonitorTreasuryResult, AgentAction } from './types'
+import { SynArcConfig, RebalanceProposalParams, MonitorTreasuryResult, AgentAction, QueuedAgentWithdrawal } from './types'
 
 /**
  * SynArcTreasuryAgent
@@ -57,5 +57,77 @@ export class SynArcTreasuryAgent {
    */
   async getAgentActions(): Promise<AgentAction[]> {
     return this.synarc.getAgentActions()
+  }
+
+  /**
+   * isPaused
+   * Checks if the agent contract is paused on-chain.
+   */
+  async isPaused(agentAddress?: `0x${string}`): Promise<boolean> {
+    return this.synarc.isAgentPaused(agentAddress)
+  }
+
+  /**
+   * pause
+   * Emergency stops the agent contract, preventing it from executing actions.
+   */
+  async pause(agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.pauseAgent(agentAddress)
+  }
+
+  /**
+   * unpause
+   * Resumes execution of the agent contract (only callable by owner).
+   */
+  async unpause(agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.unpauseAgent(agentAddress)
+  }
+
+  /**
+   * getMaxRebalanceAmount
+   * Retrieves the current maximum rebalance amount limit on-chain.
+   */
+  async getMaxRebalanceAmount(agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.getAgentMaxRebalanceAmount(agentAddress)
+  }
+
+  /**
+   * setMaxRebalanceAmount
+   * Sets the maximum rebalance amount limit on the agent contract.
+   */
+  async setMaxRebalanceAmount(amountUSDC: string | number, agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.setAgentMaxRebalanceAmount(amountUSDC, agentAddress)
+  }
+
+  /**
+   * queueWithdrawal
+   * Queues a timelocked withdrawal from the agent contract (only callable by owner).
+   */
+  async queueWithdrawal(token: `0x${string}`, recipient: `0x${string}`, amount: string | number | bigint, agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.queueAgentWithdrawal(token, recipient, amount, agentAddress)
+  }
+
+  /**
+   * executeWithdrawal
+   * Executes a queued withdrawal after the delay timelock expires.
+   */
+  async executeWithdrawal(id: string | number | bigint, agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.executeAgentWithdrawal(id, agentAddress)
+  }
+
+  /**
+   * cancelWithdrawal
+   * Cancels a queued withdrawal before execution.
+   */
+  async cancelWithdrawal(id: string | number | bigint, agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.cancelAgentWithdrawal(id, agentAddress)
+  }
+
+  /**
+   * getQueuedWithdrawals
+   * Retrieves a list of queued withdrawals from the agent contract.
+   */
+  async getQueuedWithdrawals(agentAddress?: `0x${string}`): Promise<QueuedAgentWithdrawal[]> {
+    return this.synarc.getAgentQueuedWithdrawals(agentAddress)
   }
 }

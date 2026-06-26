@@ -23,8 +23,12 @@ import {
   RebalanceProposalParams,
   AgentAction,
   MonitorTreasuryResult,
+  QueuedWithdrawal,
+  QueuedAgentWithdrawal,
+  CreatorDAO,
+  CreatorDAOMilestone,
 } from './types'
-import { GOVERNOR_ABI, TREASURY_ABI, TOKEN_ABI, ERC20_ABI, TOKEN_MESSENGER_ABI } from './abis'
+import { GOVERNOR_ABI, TREASURY_ABI, TOKEN_ABI, ERC20_ABI, TOKEN_MESSENGER_ABI, AGENT_ABI, CROWDFUND_ABI, CROWDFUND_BYTECODE } from './abis'
 
 export class SynArc {
   private config: SynArcConfig
@@ -304,6 +308,102 @@ export class SynArc {
     return depositTx
   }
 
+  async isTreasuryPaused(): Promise<boolean> {
+    return this.publicClient.readContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'paused',
+    }) as Promise<boolean>
+  }
+
+  async pauseTreasury(): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'pause',
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async unpauseTreasury(): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'unpause',
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async executeTreasuryWithdrawal(id: string | number | bigint): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'executeWithdrawal',
+      args: [BigInt(id)],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async cancelTreasuryWithdrawal(id: string | number | bigint): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'cancelWithdrawal',
+      args: [BigInt(id)],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async getTreasuryQueuedWithdrawals(): Promise<QueuedWithdrawal[]> {
+    const list = await this.publicClient.readContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'getQueuedWithdrawals',
+    })
+    return list as QueuedWithdrawal[]
+  }
+
+  async setTreasuryWithdrawalDelay(newDelay: string | number | bigint): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'setWithdrawalDelay',
+      args: [BigInt(newDelay)],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+
   // ─── CREATOR ECONOMY & NANOPAYMENTS ─────────────────────
 
   async supportCreator(creatorWallet: `0x${string}`, amount: string | number): Promise<string> {
@@ -346,46 +446,208 @@ export class SynArc {
 
   /**
    * createCreatorDAO
-   * Launches a new Creator DAO by submitting an on-chain governance proposal.
-   * The proposal encodes a treasury withdrawal (the funding goal) to the creator's wallet.
-   * Token holders vote to approve the campaign; execution releases the funds.
+   * Deploys a SynArcCrowdfund escrow contract directly from the user's wallet.
+   * This matches the main site's create-dao flow — the contract holds raised USDC in
+   * milestone escrow and releases to the recipient when milestones are met.
+   * @returns Transaction hash of the deployment.
    */
   async createCreatorDAO(params: CreatorDAOParams): Promise<string> {
     this.requireWallet()
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
 
-    const recipient = params.recipient || address
-    const goalRaw = parseUnits(params.goalUSDC.toString() as `${number}`, 6)
-    const template: CreatorDAOTemplate = params.template || 'general'
+    const goalUSDC = params.goalUSDC ?? params.goal
+    if (!goalUSDC) throw new Error('goalUSDC (or goal) is required for createCreatorDAO')
 
-    // Encode treasury withdraw call as the proposal action
-    const withdrawCalldata = encodeFunctionData({
-      abi: TREASURY_ABI,
-      functionName: 'withdraw',
-      args: [recipient, goalRaw],
-    })
+    const recipient = (params.recipientWallet || params.recipient || address) as `0x${string}`
+    const goalRaw = BigInt(Math.round(parseFloat(goalUSDC.toString()) * 1_000_000))
+    const durationDays = params.durationDays ?? 30
+    const isAgent = params.isAgent ?? false
+    const category = params.category || (isAgent ? 'AI Agent Fund' : 'Creator DAO')
+    const usdcAddress = (this.config.usdcAddress || '0x3600000000000000000000000000000000000000') as `0x${string}`
 
-    // Build milestone text if provided
-    const milestoneText = params.milestones && params.milestones.length > 0
-      ? `\n\n**Milestones:**\n${params.milestones.map((m, i) => `${i + 1}. ${m}`).join('\n')}`
-      : ''
+    // Single default milestone matching the main site's create-dao page
+    const milestoneTitles = ['Initial Launch Phase']
+    const milestoneAmounts = [goalRaw]
+    const milestoneDescriptions = ['Release of initial backing capital to kickstart the project.']
 
-    const description =
-      `[CreatorDAO:${template.toUpperCase()}] ${params.name}\n\n` +
-      `${params.description}${milestoneText}\n\n` +
-      `Goal: ${params.goalUSDC} USDC → ${recipient}`
-
-    const txHash = await this.walletClient.writeContract({
-      address: this.config.governorAddress,
-      abi: GOVERNOR_ABI,
-      functionName: 'propose',
-      args: [[this.config.treasuryAddress], [0n], [withdrawCalldata], description],
+    // Deploy SynArcCrowdfund contract directly from user wallet
+    const deployHash = await this.walletClient.deployContract({
+      abi: CROWDFUND_ABI,
+      bytecode: CROWDFUND_BYTECODE as `0x${string}`,
+      args: [
+        address,          // creator / deployer
+        recipient,        // recipient wallet for released funds
+        usdcAddress,      // USDC precompile on Arc
+        goalRaw,          // goal in USDC (6 decimals)
+        BigInt(durationDays), // campaign duration in days
+        isAgent,          // whether this is an AI agent fund
+        params.name.trim(),
+        params.description.trim(),
+        category,
+        milestoneTitles,
+        milestoneAmounts,
+        milestoneDescriptions,
+      ],
       account: this.getSigner(address),
     })
 
-    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
-    return txHash
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: deployHash })
+    const escrowAddress = receipt.contractAddress as `0x${string}`
+
+    // Auto-register with the off-chain API if configured
+    if (this.config.creatorApiUrl && escrowAddress) {
+      try {
+        const deadline = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+        await fetch(`${this.config.creatorApiUrl}/campaigns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: params.name,
+            description: params.description,
+            category,
+            goal: parseFloat(goalUSDC.toString()),
+            isAgent,
+            creator: address,
+            recipient,
+            deadline,
+            milestones: [{
+              title: 'Initial Launch Phase',
+              amount: parseFloat(goalUSDC.toString()),
+              description: 'Release of initial backing capital to kickstart the project.',
+              status: 'active',
+            }],
+            escrowAddress,
+            image: params.imageUrl || undefined,
+          }),
+        })
+      } catch (_) {
+        // Silently ignore API registration errors — contract is already deployed
+      }
+    }
+
+    return deployHash
+  }
+
+  /**
+   * supportCreatorDAO
+   * Sends USDC directly to a deployed SynArcCrowdfund escrow contract.
+   * Equivalent to the "Fund" button on the main site's creator DAO page.
+   * @param daoAddress - The escrow contract address of the Creator DAO.
+   * @param amount - Amount in USDC (e.g. 5, 10, 100).
+   * @returns Transaction hash.
+   */
+  async supportCreatorDAO(daoAddress: `0x${string}`, amount: string | number): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const usdcAddress = (this.config.usdcAddress || '0x3600000000000000000000000000000000000000') as `0x${string}`
+    const amountRaw = parseUnits(amount.toString() as `${number}`, 6)
+
+    // 1. Approve USDC transfer to the escrow contract
+    const approveTx = await this.walletClient.writeContract({
+      address: usdcAddress,
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [daoAddress, amountRaw],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: approveTx })
+
+    // 2. Call fund() on the SynArcCrowdfund contract
+    const fundTx = await this.walletClient.writeContract({
+      address: daoAddress,
+      abi: CROWDFUND_ABI,
+      functionName: 'fund',
+      args: [amountRaw],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: fundTx })
+    return fundTx
+  }
+
+  /**
+   * getCreatorDAO
+   * Returns on-chain data for a deployed SynArcCrowdfund contract.
+   * @param daoAddress - The escrow contract address.
+   * @returns CreatorDAO object.
+   */
+  async getCreatorDAO(daoAddress: `0x${string}`): Promise<CreatorDAO> {
+    const reads = await Promise.all([
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'title' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'description' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'category' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'goal' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'raised' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'contributors' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'creator' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'recipient' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'deadline' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'isAgent' }),
+      this.publicClient.readContract({ address: daoAddress, abi: CROWDFUND_ABI, functionName: 'state' }),
+    ])
+
+    const [title, description, category, goal, raised, contributors, creator, recipient, deadline, isAgent, stateRaw] = reads
+    const stateMap = ['Active', 'Voting', 'Completed', 'Refunded'] as const
+    const state = stateMap[Number(stateRaw)] ?? 'Active'
+
+    let milestones: CreatorDAOMilestone[] = []
+    try {
+      const milestoneData = await this.publicClient.readContract({
+        address: daoAddress,
+        abi: CROWDFUND_ABI,
+        functionName: 'getMilestones',
+      }) as any[]
+      milestones = milestoneData.map((m: any) => ({
+        title: m.title,
+        amount: formatUnits(m.amount, 6),
+        description: m.description,
+        status: m.released ? 'completed' : m.active ? 'active' : 'pending',
+      }))
+    } catch (_) {
+      // Fallback if getMilestones isn't available
+      milestones = [{ title: 'Initial Launch Phase', amount: formatUnits(goal as bigint, 6), description: 'Initial funding phase', status: 'active' }]
+    }
+
+    return {
+      id: daoAddress,
+      title: title as string,
+      description: description as string,
+      category: category as string,
+      goal: formatUnits(goal as bigint, 6),
+      raised: formatUnits(raised as bigint, 6),
+      contributors: Number(contributors),
+      state,
+      isAgent: isAgent as boolean,
+      creator: creator as `0x${string}`,
+      recipient: recipient as `0x${string}`,
+      deadline: new Date(Number(deadline) * 1000).toISOString(),
+      milestones,
+      escrowAddress: daoAddress,
+    }
+  }
+
+  /**
+   * getCreatorDAOs
+   * Returns a list of Creator DAO campaigns.
+   * If `creatorApiUrl` is configured, fetches enriched data from the API.
+   * @returns Array of CreatorDAO objects.
+   */
+  async getCreatorDAOs(): Promise<CreatorDAO[]> {
+    if (this.config.creatorApiUrl) {
+      try {
+        const res = await fetch(`${this.config.creatorApiUrl}/campaigns?status=active`)
+        if (res.ok) {
+          const data = await res.json()
+          return data as CreatorDAO[]
+        }
+      } catch (_) {
+        // Fall through
+      }
+    }
+    // Without an API, return empty — on-chain discovery requires an indexer
+    return []
   }
 
   /**
@@ -535,9 +797,10 @@ export class SynArc {
       args: [agentAddress, amountRaw],
     })
 
-    const title = params.title || `Treasury Rebalance: Move ${params.amountUSDC} USDC to ${params.targetChain}`
+    const title = params.title || `Proposed by Treasury Agent — Bridge ${params.amountUSDC} USDC to ${params.targetChain}`
     const description = 
-      `${title}\n\n` +
+      `Proposed by Treasury Agent\n\n` +
+      `AUTONOMOUS AGENT PROPOSAL\n` +
       `[TreasuryRebalance]\n` +
       `Amount: ${params.amountUSDC} USDC\n` +
       `Target Chain: ${params.targetChain}\n` +
@@ -667,19 +930,20 @@ export class SynArc {
 
     for (const p of proposals) {
       const desc: string = p.description || ''
-      if (!desc.includes('[TreasuryRebalance]')) continue
+      const isRebalance = desc.includes('[TreasuryRebalance]') || desc.includes('AUTONOMOUS AGENT PROPOSAL')
+      if (!isRebalance) continue
 
       const amountMatch = desc.match(/Amount:\s*([\d.]+)\s*USDC/)
+      if (!amountMatch) continue
+
       const chainMatch = desc.match(/Target Chain:\s*([^\n]+)/)
       const domainMatch = desc.match(/Target Domain:\s*(\d+)/)
       const recipientMatch = desc.match(/Recipient:\s*(0x[a-fA-F0-9]{40})/)
 
-      if (!amountMatch || !chainMatch || !domainMatch || !recipientMatch) continue
-
       const amountUSDC = amountMatch[1]
-      const targetChain = chainMatch[1].trim()
-      const targetDomain = parseInt(domainMatch[1], 10)
-      const recipient = recipientMatch[1] as `0x${string}`
+      const targetChain = chainMatch ? chainMatch[1].trim() : 'Ethereum'
+      const targetDomain = domainMatch ? parseInt(domainMatch[1], 10) : 0
+      const recipient = recipientMatch ? (recipientMatch[1] as `0x${string}`) : (p.proposer as `0x${string}`)
       const proposalId = p.proposalId?.toString() || ''
 
       let state = 'Unknown'
@@ -702,6 +966,149 @@ export class SynArc {
     }
 
     return actions
+  }
+
+  // ─── AGENT CONTRACT HELPERS ──────────────────────────────
+
+  private getAgentAddress(override?: `0x${string}`): `0x${string}` {
+    const addr = override || this.config.agentAddress
+    if (!addr) {
+      throw new Error('Agent contract address must be configured in SynArcConfig or passed as an argument.')
+    }
+    return addr
+  }
+
+  async isAgentPaused(agentAddress?: `0x${string}`): Promise<boolean> {
+    const target = this.getAgentAddress(agentAddress)
+    return this.publicClient.readContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'paused',
+    }) as Promise<boolean>
+  }
+
+  async pauseAgent(agentAddress?: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const target = this.getAgentAddress(agentAddress)
+
+    const txHash = await this.walletClient.writeContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'pause',
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async unpauseAgent(agentAddress?: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const target = this.getAgentAddress(agentAddress)
+
+    const txHash = await this.walletClient.writeContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'unpause',
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async getAgentMaxRebalanceAmount(agentAddress?: `0x${string}`): Promise<string> {
+    const target = this.getAgentAddress(agentAddress)
+    const amount = await this.publicClient.readContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'maxRebalanceAmount',
+    })
+    return formatUnits(amount as bigint, 6)
+  }
+
+  async setAgentMaxRebalanceAmount(amountUSDC: string | number, agentAddress?: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const target = this.getAgentAddress(agentAddress)
+    const amountRaw = parseUnits(amountUSDC.toString() as `${number}`, 6)
+
+    const txHash = await this.walletClient.writeContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'setMaxRebalanceAmount',
+      args: [amountRaw],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async queueAgentWithdrawal(token: `0x${string}`, recipient: `0x${string}`, amount: string | number | bigint, agentAddress?: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const target = this.getAgentAddress(agentAddress)
+
+    // Parse amount using 6 decimals as default for USDC/EURC
+    const amountRaw = typeof amount === 'bigint' ? amount : parseUnits(amount.toString() as `${number}`, 6)
+
+    const txHash = await this.walletClient.writeContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'queueWithdrawal',
+      args: [token, recipient, amountRaw],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async executeAgentWithdrawal(id: string | number | bigint, agentAddress?: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const target = this.getAgentAddress(agentAddress)
+
+    const txHash = await this.walletClient.writeContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'executeWithdrawal',
+      args: [BigInt(id)],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async cancelAgentWithdrawal(id: string | number | bigint, agentAddress?: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const target = this.getAgentAddress(agentAddress)
+
+    const txHash = await this.walletClient.writeContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'cancelWithdrawal',
+      args: [BigInt(id)],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  async getAgentQueuedWithdrawals(agentAddress?: `0x${string}`): Promise<QueuedAgentWithdrawal[]> {
+    const target = this.getAgentAddress(agentAddress)
+    const list = await this.publicClient.readContract({
+      address: target,
+      abi: AGENT_ABI,
+      functionName: 'getQueuedWithdrawals',
+    })
+    return list as QueuedAgentWithdrawal[]
   }
 
   // ─── HELPERS ───────────────────────────────────────────
