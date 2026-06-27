@@ -1,16 +1,19 @@
 # synarc-agent-sdk
 
-SDK for integrating SynArc Creator Economy, nanopayments, governance, and treasury on the Arc Network.
-Built to empower **Creators, Fans, Communities, and Autonomous AI Agents** to fund, govern, and participate in the decentralized creator economy.
+> **The official SDK for SynArc** — build Creator DAOs, autonomous treasury agents, and cross-chain payment flows on the Arc Network.
+
+Most community treasury tools require manual intervention, governance bottlenecks, and fragile bridging mechanics. SynArc fixes that by combining **milestone-gated Creator DAOs**, an **Automated Treasury Guard**, and **Circle CCTP** into one composable SDK.
 
 ---
 
 ## Features
-- **Wallet-Agnostic Setup:** Native EIP-1193 provider support covering MetaMask, Rabby, Privy, Circle Programmable Wallets, Coinbase Wallet, WalletConnect, or raw private keys.
-- **USDC Nanopayments (Lepton):** Low-cost direct micropayments/donations to creator wallets on the Arc Network.
-- **Creator-Governed DAOs:** Launch community-funded campaigns, set milestones, and govern treasury allocations via smart contracts.
-- **AI Agent Native:** Built-in support for autonomous AI agents executing proposals, voting, or analyzing and supporting creator campaigns.
-- **Read-Only Mode:** Inspect creator stats, query proposal histories, and check balances without wallet connections.
+
+- **Creator DAO Deployment** — Deploy `SynArcCrowdfund` escrow contracts directly from your wallet. Funds are milestone-gated and only released to the creator when the community approves.
+- **USDC Nanopayments** — Direct micro-payments to creator wallets on Arc Network; any amount from `$0.01` upward.
+- **Automated Treasury Guard** — Autonomous agent supporting Auto Rebalancing (CCTP), Auto Payments (scheduled with 24h timelock), and Risk Monitoring with emergency pause.
+- **Bidirectional CCTP Bridge** — Native Circle burn-and-mint; Arc Testnet ↔ Ethereum Sepolia without wrapper tokens.
+- **Wallet-Agnostic** — MetaMask, Privy, Circle Programmable Wallets, Coinbase, WalletConnect, or raw private keys.
+- **Read-Only Mode** — Query balances, campaigns, and treasury stats without connecting a wallet.
 
 ---
 
@@ -22,10 +25,24 @@ npm install synarc-agent-sdk
 
 ---
 
+## Deployed Contracts (Arc Testnet — Chain ID 5042002)
+
+| Contract | Address |
+|----------|---------|
+| **SynArcGovernor** | `0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e` |
+| **SynArcTreasury** | `0xFE0F6bF45D363d34CD5fC1781594a7471736dC18` |
+| **SynArcToken** | `0xBd0C6b83DaBF2c04Ab762C262ea0B036d2D1368e` |
+| **Treasury Agent** | `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` |
+| **USDC (Arc Testnet)** | `0x3600000000000000000000000000000000000000` |
+| **EURC (Arc Testnet)** | `0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a` |
+| **CCTP Token Messenger** | `0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e` |
+
+---
+
 ## Quick Start
 
-### 1. Read-Only Mode (Check Creator Stats)
-Inspect creator parameters directly from the blockchain without connecting a wallet:
+### Read-Only (Check Balances)
+
 ```typescript
 import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
@@ -35,353 +52,335 @@ const synarc = new SynArc({
   tokenAddress: SYNARC_TESTNET.token,
 })
 
-// Query creator voting power and USDC balance
-const stats = await synarc.getCreatorStats('0xCreatorWalletAddress')
-console.log(`Creator Voting Power: ${stats.votingPower} SYN`)
-console.log(`USDC Balance: ${stats.balanceUSDC} USDC`)
+const balance = await synarc.getTreasuryBalance()
+console.log(`Treasury: ${balance.usdc} USDC / ${balance.eurc} EURC`)
 ```
 
-### 2. Fan Nanopayment (Direct USDC Support)
-Send a direct USDC micropayment to support your favorite creator:
+### Fan Nanopayment (Direct USDC Support)
+
 ```typescript
-import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
-
 const synarc = new SynArc({
-  governorAddress: SYNARC_TESTNET.governor,
-  treasuryAddress: SYNARC_TESTNET.treasury,
-  tokenAddress: SYNARC_TESTNET.token,
-  provider: window.ethereum, // EIP-1193 provider from MetaMask
+  ...SYNARC_TESTNET,
+  provider: window.ethereum, // EIP-1193 provider
 })
 
-// Send a 5 USDC nanopayment directly to the creator's wallet
-const txHash = await synarc.supportCreator(
-  '0xCreatorWalletAddress',
-  5.00
-)
-console.log(`Nanopayment sent! Tx: ${txHash}`)
-```
-
-### 3. Creator DAO Funding Proposal
-Creators can submit proposal requests using templates to pull funds from the community treasury once milestones are achieved:
-```typescript
-import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
-
-const synarc = new SynArc({
-  governorAddress: SYNARC_TESTNET.governor,
-  treasuryAddress: SYNARC_TESTNET.treasury,
-  tokenAddress: SYNARC_TESTNET.token,
-  provider: window.ethereum,
-})
-
-// Request release of 250 USDC from the Treasury to the Creator
-const txHash = await synarc.createProposal({
-  title: 'Milestone 1 Release: Debut Single Production',
-  description: 'Requesting the release of funds as recording has been completed.',
-  template: 'funding',
-  templateParams: {
-    recipient: '0xCreatorWalletAddress',
-    amountUSDC: 250.00
-  }
-})
-console.log(`Funding proposal created! Tx: ${txHash}`)
-```
-
-### 4. AI Agent Autonomously Supporting a Creator
-AI agents running server-side can monitor campaign stats, calculate milestones, and programmatically vote or send support:
-```typescript
-import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
-
-const synarc = new SynArc({
-  governorAddress: SYNARC_TESTNET.governor,
-  treasuryAddress: SYNARC_TESTNET.treasury,
-  tokenAddress: SYNARC_TESTNET.token,
-  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
-  rpcUrl: 'https://rpc.testnet.arc.network',
-})
-
-// 1. Fetch current campaign stats
-const stats = await synarc.getCreatorStats('0xCreatorWalletAddress')
-
-// 2. Perform autonomous decision making
-if (parseFloat(stats.balanceUSDC) < 100.00) {
-  console.log('Campaign funds are low. Sending 10 USDC support nanopayment...')
-  await synarc.supportCreator('0xCreatorWalletAddress', 10.00)
-}
-
-// 3. Vote on active proposals
-await synarc.vote('proposalId', 'For')
+// Send $5 USDC directly to a creator's wallet
+const txHash = await synarc.supportCreator('0xCreatorWalletAddress', 5.00)
+console.log(`Payment sent! Tx: ${txHash}`)
 ```
 
 ---
 
-## Creator Economy
+## Creator DAO
 
-The SynArc SDK is purpose-built for the **Creator Economy** — enabling individual creators, fan communities, and autonomous AI agents to raise funds, govern campaigns, and send payments entirely on-chain.
+The Creator DAO system deploys an isolated `SynArcCrowdfund` escrow contract directly from the user's wallet. Supporters fund the escrow; funds are released to the creator when milestones pass community vote.
 
 ### createCreatorDAO
 
-Launch a new Creator DAO by submitting an on-chain governance proposal. Token holders vote to approve the campaign; once the proposal passes and executes, USDC is released from the treasury to the creator's wallet.
+Deploy a new Creator DAO escrow contract:
 
 ```typescript
 import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
 const synarc = new SynArc({
-  governorAddress: SYNARC_TESTNET.governor,
-  treasuryAddress: SYNARC_TESTNET.treasury,
-  tokenAddress: SYNARC_TESTNET.token,
+  ...SYNARC_TESTNET,
   provider: window.ethereum,
+  creatorApiUrl: 'https://api.synarcdao.xyz', // optional: auto-registers campaign
 })
 
-// Launch a music creator's campaign
 const txHash = await synarc.createCreatorDAO({
-  name: 'Lepton — Debut EP',
+  name: 'Debut EP — Kelly Music',
   description: 'Fund the production and release of my debut EP on Arc Network.',
   goalUSDC: 500,
+  durationDays: 30,
+  recipientWallet: '0xYourWalletAddress', // optional, defaults to caller
+  imageUrl: 'https://example.com/cover.jpg', // optional
   template: 'music',
-  milestones: [
-    'Studio recording sessions complete',
-    'Mixing and mastering finalized',
-    'EP released on streaming platforms',
-  ],
 })
-console.log(`Creator DAO proposal submitted! Tx: ${txHash}`)
+console.log(`Creator DAO deployed! Tx: ${txHash}`)
 ```
-
-**Supported templates:** `'music'` | `'video'` | `'art'` | `'writing'` | `'software'` | `'general'`
 
 **Parameters (`CreatorDAOParams`):**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | `string` | ✅ | Display name of the DAO / campaign |
+| `name` | `string` | ✅ | Campaign / project name |
 | `description` | `string` | ✅ | Short description of the creator's goal |
-| `goalUSDC` | `string \| number` | ✅ | Target funding amount in USDC |
-| `template` | `CreatorDAOTemplate` | — | Pre-built campaign type (default: `'general'`) |
-| `recipient` | `0x${string}` | — | Payout wallet; defaults to caller's address |
-| `milestones` | `string[]` | — | Optional milestone titles for milestone-gated funding |
+| `goalUSDC` | `string \| number` | ✅ | Target funding amount in USDC (also accepts `goal`) |
+| `durationDays` | `number` | — | Campaign duration in days (default: `30`, range: 7–90) |
+| `recipientWallet` | `0x${string}` | — | Payout wallet; defaults to caller's address (also accepts `recipient`) |
+| `imageUrl` | `string` | — | Cover image URL for the campaign |
+| `template` | `CreatorDAOTemplate` | — | Campaign type: `'music' \| 'art' \| 'writing' \| 'software' \| 'general'` |
+| `isAgent` | `boolean` | — | Set `true` for AI agent treasury funds |
+| `category` | `string` | — | Category label override |
+
+---
+
+### supportCreatorDAO
+
+Fund a deployed Creator DAO escrow. Approves USDC and calls `fund()` on the contract:
+
+```typescript
+// Fund a Creator DAO with 50 USDC
+const txHash = await synarc.supportCreatorDAO(
+  '0xEscrowContractAddress',
+  50
+)
+console.log(`Funded! Tx: ${txHash}`)
+```
+
+---
+
+### getCreatorDAO
+
+Read on-chain data from a deployed `SynArcCrowdfund` contract:
+
+```typescript
+const dao = await synarc.getCreatorDAO('0xEscrowContractAddress')
+
+console.log(dao.title)          // 'Debut EP — Kelly Music'
+console.log(dao.goal)           // '500.000000'
+console.log(dao.raised)         // '320.000000'
+console.log(dao.contributors)   // 12
+console.log(dao.state)          // 'Active'
+console.log(dao.milestones)     // [{ title, amount, description, status }]
+```
+
+**Returns (`CreatorDAO`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Escrow contract address |
+| `title` | `string` | Campaign title |
+| `description` | `string` | Campaign description |
+| `category` | `string` | Category label |
+| `goal` | `string` | Funding goal in USDC |
+| `raised` | `string` | Amount raised so far |
+| `contributors` | `number` | Number of unique contributors |
+| `state` | `'Active' \| 'Voting' \| 'Completed' \| 'Refunded'` | Campaign state |
+| `isAgent` | `boolean` | Whether this is an AI agent fund |
+| `creator` | `0x${string}` | Deployer wallet |
+| `recipient` | `0x${string}` | Payout wallet |
+| `deadline` | `string` | ISO timestamp of campaign deadline |
+| `milestones` | `CreatorDAOMilestone[]` | Milestone list |
+| `escrowAddress` | `0x${string}` | Escrow contract address |
+
+---
+
+### getCreatorDAOs
+
+List active Creator DAO campaigns (fetches from `creatorApiUrl` if configured):
+
+```typescript
+const daos = await synarc.getCreatorDAOs()
+daos.forEach(d => {
+  console.log(`${d.title} — ${d.raised}/${d.goal} USDC (${d.state})`)
+})
+```
 
 ---
 
 ### supportCreator
 
-Send a direct USDC nanopayment to a creator's wallet. Works for micro-amounts like `$0.01` or `$0.10` — ideal for Lepton-style low-latency fan micropayments.
+Send a direct USDC nanopayment straight to a creator's wallet (not an escrow):
 
 ```typescript
-// Fan sends $0.10 to Lepton
-await synarc.supportCreator('0xLeptonWalletAddress', 0.10)
-
-// Fan sends $1.00
-await synarc.supportCreator('0xLeptonWalletAddress', 1.00)
+// Send $0.10 micropayment
+await synarc.supportCreator('0xCreatorWalletAddress', 0.10)
 
 // AI agent sends $5.00 autonomously
-await synarc.supportCreator('0xLeptonWalletAddress', 5.00)
+await synarc.supportCreator('0xCreatorWalletAddress', 5.00)
 ```
 
 ---
 
 ### getCreatorProfile
 
-Fetch a creator's full profile including on-chain stats (voting power, USDC balance) merged with optional off-chain metadata (name, bio, slug, raised totals).
+Fetch a creator's on-chain stats merged with optional off-chain metadata:
 
 ```typescript
-// Look up by wallet address (always works)
-const profile = await synarc.getCreatorProfile('0xLeptonWalletAddress')
+// By wallet address
+const profile = await synarc.getCreatorProfile('0xCreatorWalletAddress')
 
-// Look up by slug — requires creatorApiUrl in config
-const profileBySlug = await synarc.getCreatorProfile('lepton')
+// By slug — requires creatorApiUrl in config
+const profile = await synarc.getCreatorProfile('kelly-music')
 
-console.log(profile.name)                // 'Lepton'
-console.log(profile.bio)                 // 'Electronic music producer...'
-console.log(profile.stats.balanceUSDC)  // '42.50'
-console.log(profile.totalRaisedUSDC)    // '1250.00'
-console.log(profile.supporterCount)     // 87
-```
-
-**With off-chain API:**
-```typescript
-const synarc = new SynArc({
-  ...SYNARC_TESTNET,
-  creatorApiUrl: 'https://api.synarcdao.xyz',
-})
-
-const profile = await synarc.getCreatorProfile('lepton')
-```
-
-**Returns (`CreatorProfile`):**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `address` | `0x${string}` | Creator's wallet address |
-| `slug` | `string` | Human-readable slug (e.g. `'lepton'`) |
-| `name` | `string` | Display name |
-| `bio` | `string` | Short bio |
-| `template` | `CreatorDAOTemplate` | Campaign template type |
-| `stats` | `CreatorStats` | On-chain `{ votingPower, balanceUSDC }` |
-| `totalRaisedUSDC` | `string` | All-time USDC raised |
-| `supporterCount` | `number` | Number of unique supporters |
-
----
-
-### getCreatorCampaigns
-
-List all active Creator DAO campaigns. Scans on-chain `ProposalCreated` events for `[CreatorDAO:*]` tagged proposals, or fetches enriched data from the configured `creatorApiUrl`.
-
-```typescript
-const campaigns = await synarc.getCreatorCampaigns()
-
-campaigns.forEach(c => {
-  console.log(`${c.name} (${c.template}) — Goal: ${c.goalUSDC} USDC`)
-  console.log(`  Progress: ${c.progress}% — Active: ${c.isActive}`)
-  c.milestones.forEach(m => console.log(`  [${m.completed ? '✅' : '⬜'}] ${m.title}`))
-})
-```
-
-**Returns (`CreatorCampaign[]`):**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | On-chain proposal ID |
-| `creatorAddress` | `0x${string}` | Creator's wallet address |
-| `name` | `string` | Campaign name |
-| `description` | `string` | Campaign description |
-| `template` | `CreatorDAOTemplate` | Campaign type |
-| `goalUSDC` | `string` | Funding goal in USDC |
-| `raisedUSDC` | `string` | Amount raised so far |
-| `progress` | `number` | Percentage of goal (0–100) |
-| `isActive` | `boolean` | Whether accepting support |
-| `milestones` | `Array<{ id, title, completed }>` | Milestone list |
-
----
-
-### AI Agent — Full Creator Economy Workflow
-
-```typescript
-import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
-
-const agent = new SynArc({
-  governorAddress: SYNARC_TESTNET.governor,
-  treasuryAddress: SYNARC_TESTNET.treasury,
-  tokenAddress: SYNARC_TESTNET.token,
-  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
-  rpcUrl: 'https://rpc.testnet.arc.network',
-  creatorApiUrl: 'https://api.synarcdao.xyz',
-})
-
-// 1. Discover active campaigns
-const campaigns = await agent.getCreatorCampaigns()
-console.log(`Found ${campaigns.length} active Creator DAOs`)
-
-// 2. Get Lepton's profile
-const lepton = await agent.getCreatorProfile('lepton')
-console.log(`Lepton has raised ${lepton.totalRaisedUSDC} USDC from ${lepton.supporterCount} supporters`)
-
-// 3. Autonomously send a $0.50 nanopayment to support
-if (lepton.stats.balanceUSDC < '100') {
-  const tx = await agent.supportCreator(lepton.address, 0.50)
-  console.log(`Sent $0.50 nanopayment to Lepton! Tx: ${tx}`)
-}
-
-// 4. Launch a new Creator DAO for a new creator
-const daoTx = await agent.createCreatorDAO({
-  name: 'New Artist — Visual Album',
-  description: 'Funding a visual album project combining original music and short films.',
-  goalUSDC: 1000,
-  template: 'video',
-  milestones: [
-    'Script and storyboard complete',
-    'Filming wrapped',
-    'Post-production complete',
-    'Visual album released',
-  ],
-})
-console.log(`New Creator DAO launched! Tx: ${daoTx}`)
+console.log(profile.name)               // 'Kelly Music'
+console.log(profile.stats.balanceUSDC) // '42.50'
+console.log(profile.totalRaisedUSDC)   // '1250.00'
+console.log(profile.supporterCount)    // 87
 ```
 
 ---
 
 ## Treasury Agent
 
-The SynArc SDK provides a built-in **Treasury Rebalancer Agent** submodule. This allows developers to construct autonomous AI agents that monitor treasury funds, propose rebalances, and execute cross-chain USDC bridging via Circle's Cross-Chain Transfer Protocol (CCTP).
+The **Automated Treasury Guard** is an autonomous agent that protects workspace funds, automates payments, monitors risk, and bridges USDC cross-chain via Circle CCTP.
+
+### Setup
+
+```typescript
+import { SynArc, SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
+
+const synarc = new SynArc({
+  ...SYNARC_TESTNET,
+  agentAddress: '0x88BdF819466C1802ce6C780a9fbdF3A314cab07D',
+  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e',
+  rebalanceThresholdUSDC: 100, // Recommend rebalance when USDC > 100
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+})
+
+const agent = new SynArcTreasuryAgent(synarc)
+```
+
+---
 
 ### 1. Monitor Treasury
-Query the current treasury balance and automatically identify rebalancing opportunities based on configured threshold parameters:
+
+Query balances and get rebalance recommendations:
+
 ```typescript
-import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
+const status = await agent.monitorTreasury()
 
-const synarc = new SynArc({
-  ...SYNARC_TESTNET,
-  rebalanceThresholdUSDC: 50000, // Trigger rebalance suggestion when USDC > 50,000
-})
-
-const check = await synarc.monitorTreasury()
-if (check.needsRebalance) {
-  console.log(`Recommendation: Bridge ${check.suggestedAmountUSDC} USDC to ${check.suggestedTargetChain}`)
-}
-```
-
-### 2. Propose Rebalance
-Submit a governance proposal to rebalance a specified amount of treasury USDC. This proposes to withdraw the USDC to the executor/agent wallet so that it can be bridged:
-```typescript
-const txHash = await synarc.createRebalanceProposal({
-  amountUSDC: 25000,
-  targetChain: 'Arbitrum',
-  targetDomain: 3, // Circle CCTP Domain ID for Arbitrum
-  mintRecipient: '0xRecipientAddressOnArbitrum',
-  reason: 'Optimize yield opportunities and secure treasury allocations.',
-})
-console.log(`Rebalance proposal submitted! Tx: ${txHash}`)
-```
-
-### 3. Execute CCTP Rebalance
-Once the proposal passes voting and is executed on-chain, the agent wallet receives the treasury USDC. The agent then calls `approve` and executes Circle's CCTP `depositForBurn` to bridge the funds:
-```typescript
-const agent = new SynArc({
-  ...SYNARC_TESTNET,
-  tokenMessengerAddress: '0xCircleTokenMessengerAddress',
-  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
-})
-
-const bridgeTx = await agent.executeCCTPRebalance('proposalId')
-console.log(`Cross-chain rebalance initiated! CCTP Tx: ${bridgeTx}`)
-```
-
-### 4. Full Autonomous Agent Workflow
-```typescript
-import { SynArc, SYNARC_TESTNET, SynArcTreasuryAgent } from 'synarc-agent-sdk'
-
-const synarc = new SynArc({
-  ...SYNARC_TESTNET,
-  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e', // CCTP Messenger
-  rebalanceThresholdUSDC: 50000,
-  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
-  rpcUrl: 'https://rpc.testnet.arc.network',
-})
-
-const rebalancer = new SynArcTreasuryAgent(synarc)
-
-// 1. Monitor Treasury
-const status = await rebalancer.monitorTreasury()
 if (status.needsRebalance) {
-  // 2. Submit proposal autonomously
-  const proposalTx = await rebalancer.createRebalanceProposal({
-    amountUSDC: status.suggestedAmountUSDC,
-    targetChain: status.suggestedTargetChain,
-    targetDomain: status.suggestedTargetDomain,
-    mintRecipient: '0xAgentRecipientWalletOnEthereum',
-    reason: status.reason,
-  })
-  console.log(`Rebalance proposed: ${proposalTx}`)
+  console.log(`Bridge ${status.suggestedAmountUSDC} USDC to ${status.suggestedTargetChain}`)
+  console.log(status.reason)
 }
+```
 
-// 3. Inspect actions log
-const actions = await rebalancer.getAgentActions()
-for (const action of actions) {
-  if (action.status === 'Executed' && action.type === 'RebalanceProposed') {
-    // 4. Execute CCTP rebalance autonomously
-    const bridgeTx = await rebalancer.executeCCTPRebalance(action.id)
-    console.log(`Executed CCTP bridge for proposal ${action.id}. Tx: ${bridgeTx}`)
+---
+
+### 2. Auto Rebalance (CCTP)
+
+Propose a cross-chain rebalance via governance, then execute it with Circle CCTP once approved:
+
+```typescript
+// Step 1: Propose rebalance
+const proposalTx = await agent.createRebalanceProposal({
+  amountUSDC: 50,
+  targetChain: 'Ethereum',
+  targetDomain: 0, // Circle CCTP Domain ID: 0=Ethereum, 3=Arbitrum, 6=Base
+  mintRecipient: '0xRecipientOnEthereum',
+  reason: 'Optimize yield allocations across chains.',
+})
+console.log(`Rebalance proposed: ${proposalTx}`)
+
+// Step 2: After proposal is voted through and executed on-chain:
+const bridgeTx = await agent.executeCCTPRebalance(proposalId)
+console.log(`CCTP bridge initiated: ${bridgeTx}`)
+```
+
+---
+
+### 3. Auto Payments (Scheduled with Timelock)
+
+Queue a timelocked payment withdrawal from the agent contract. A 24-hour delay is enforced on-chain before execution:
+
+```typescript
+// Queue a payment (enforces 24h on-chain timelock)
+const queueTx = await agent.queueWithdrawal(
+  '0x3600000000000000000000000000000000000000', // USDC address
+  '0xCreatorWalletAddress',                      // recipient
+  25,                                            // 25 USDC
+)
+console.log(`Payment queued! Tx: ${queueTx}`)
+
+// After 24 hours, execute the payment
+const pendingWithdrawals = await agent.getQueuedWithdrawals()
+for (const w of pendingWithdrawals) {
+  if (!w.executed && !w.canceled) {
+    const execTx = await agent.executeWithdrawal(w.id)
+    console.log(`Payment executed: ${execTx}`)
   }
 }
+```
+
+---
+
+### 4. Risk Monitoring & Emergency Pause
+
+The agent continuously monitors 4 risk signals: Low Liquidity, Large Outflow, Emergency Stop, and Inactivity. Use the SDK to read state and trigger emergency pauses:
+
+```typescript
+// Check if agent is paused on-chain
+const paused = await agent.isPaused()
+console.log(`Agent paused: ${paused}`)
+
+// Emergency stop — halts all agent operations
+await agent.pause()
+
+// Resume agent after review
+await agent.unpause()
+
+// Check and update max rebalance safety limit
+const currentLimit = await agent.getMaxRebalanceAmount()
+console.log(`Max rebalance: ${currentLimit} USDC`)
+
+// Set a new safety limit (only owner can call this)
+await agent.setMaxRebalanceAmount(50) // 50 USDC max per rebalance
+```
+
+---
+
+### 5. Full Autonomous Agent Loop
+
+```typescript
+import { SynArc, SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
+
+const synarc = new SynArc({
+  ...SYNARC_TESTNET,
+  agentAddress: '0x88BdF819466C1802ce6C780a9fbdF3A314cab07D',
+  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e',
+  rebalanceThresholdUSDC: 100,
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+})
+
+const agent = new SynArcTreasuryAgent(synarc)
+
+async function runAgentCycle() {
+  // 1. Safety check — abort if agent is paused
+  const isPaused = await agent.isPaused()
+  if (isPaused) {
+    console.log('Agent is paused. Skipping cycle.')
+    return
+  }
+
+  // 2. Monitor treasury
+  const status = await agent.monitorTreasury()
+  console.log(`Treasury USDC: ${status.currentBalanceUSDC}`)
+
+  if (status.needsRebalance) {
+    // 3. Check max rebalance limit
+    const maxLimit = await agent.getMaxRebalanceAmount()
+    const amount = Math.min(
+      parseFloat(status.suggestedAmountUSDC),
+      parseFloat(maxLimit)
+    )
+
+    // 4. Propose rebalance
+    const proposalTx = await agent.createRebalanceProposal({
+      amountUSDC: amount,
+      targetChain: status.suggestedTargetChain,
+      targetDomain: status.suggestedTargetDomain,
+      mintRecipient: '0xTreasuryWalletOnEthereum',
+      reason: status.reason,
+    })
+    console.log(`Rebalance proposed: ${proposalTx}`)
+  }
+
+  // 5. Execute any proposals that passed governance
+  const actions = await agent.getAgentActions()
+  for (const action of actions) {
+    if (action.type === 'RebalanceProposed' && action.status === 'Executed') {
+      const bridgeTx = await agent.executeCCTPRebalance(action.id)
+      console.log(`Bridged proposal ${action.id}: ${bridgeTx}`)
+    }
+  }
+}
+
+// Run every 30 seconds
+setInterval(runAgentCycle, 30_000)
+runAgentCycle()
 ```
 
 ---
@@ -390,10 +389,7 @@ for (const action of actions) {
 
 ### MetaMask / Rabby / OKX (Injected)
 ```typescript
-const synarc = new SynArc({
-  ...contracts,
-  provider: window.ethereum,
-})
+const synarc = new SynArc({ ...SYNARC_TESTNET, provider: window.ethereum })
 ```
 
 ### Privy Embedded Wallet
@@ -403,20 +399,13 @@ import { useWallets } from '@privy-io/react-auth'
 const { wallets } = useWallets()
 const provider = await wallets[0].getEip1193Provider()
 
-const synarc = new SynArc({
-  ...contracts,
-  provider,
-})
+const synarc = new SynArc({ ...SYNARC_TESTNET, provider })
 ```
 
 ### Circle Programmable Wallet
 ```typescript
 const provider = await circleWallet.getEip1193Provider()
-
-const synarc = new SynArc({
-  ...contracts,
-  provider,
-})
+const synarc = new SynArc({ ...SYNARC_TESTNET, provider })
 ```
 
 ### Coinbase Wallet
@@ -425,11 +414,7 @@ import { CoinbaseWalletSDK } from '@coinbase/wallet-sdk'
 
 const coinbase = new CoinbaseWalletSDK({ appName: 'SynArc' })
 const provider = coinbase.makeWeb3Provider()
-
-const synarc = new SynArc({
-  ...contracts,
-  provider,
-})
+const synarc = new SynArc({ ...SYNARC_TESTNET, provider })
 ```
 
 ### WalletConnect
@@ -437,10 +422,15 @@ const synarc = new SynArc({
 import { EthereumProvider } from '@walletconnect/ethereum-provider'
 
 const provider = await EthereumProvider.init({ projectId: '...' })
+const synarc = new SynArc({ ...SYNARC_TESTNET, provider })
+```
 
+### AI Agent (Private Key — Server-Side)
+```typescript
 const synarc = new SynArc({
-  ...contracts,
-  provider,
+  ...SYNARC_TESTNET,
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+  rpcUrl: 'https://rpc.testnet.arc.network',
 })
 ```
 
@@ -448,130 +438,114 @@ const synarc = new SynArc({
 
 ## API Reference
 
-### SynArc Configuration
-The `SynArc` constructor accepts a `SynArcConfig` configuration:
-- `governorAddress: string` — Address of the deployed Governor contract.
-- `treasuryAddress: string` — Address of the Treasury contract.
-- `tokenAddress: string` — Address of the Governance Token (SynArcToken).
-- `eurcAddress?: string` — (Optional) EURC Token address on Arc Testnet.
-- `usdcAddress?: string` — (Optional) USDC Token address on Arc Testnet.
-- `tokenMessengerAddress?: string` — (Optional) Circle CCTP Token Messenger contract address.
-- `rebalanceThresholdUSDC?: string | number` — (Optional) USDC threshold triggering rebalance monitoring suggestions.
-- `creatorApiUrl?: string` — (Optional) Off-chain creator registry API for slug resolution and enriched metadata.
-- `rpcUrl?: string` — (Optional) Custom RPC node URL.
-- `privateKey?: string` — (Optional) 0x-prefixed private key for server environments (AI Agents).
-- `provider?: any` — (Optional) EIP-1193 Ethereum provider.
-- `walletClient?: any` — (Optional) Pre-built custom `viem` WalletClient.
+### SynArcConfig
 
-### Creator & Nanopayment Methods
+| Field | Type | Description |
+|-------|------|-------------|
+| `governorAddress` | `0x${string}` | SynArcGovernor contract address |
+| `treasuryAddress` | `0x${string}` | SynArcTreasury contract address |
+| `tokenAddress` | `0x${string}` | SynArcToken governance token address |
+| `agentAddress` | `0x${string}` | Treasury Agent contract address |
+| `eurcAddress` | `0x${string}` | EURC token address on Arc Testnet |
+| `usdcAddress` | `0x${string}` | USDC token address on Arc Testnet |
+| `tokenMessengerAddress` | `0x${string}` | Circle CCTP Token Messenger address |
+| `rebalanceThresholdUSDC` | `string \| number` | USDC threshold for rebalance recommendations |
+| `creatorApiUrl` | `string` | Off-chain API for campaign/creator metadata |
+| `rpcUrl` | `string` | Custom RPC URL |
+| `privateKey` | `0x${string}` | Private key for server-side AI agents |
+| `provider` | `any` | EIP-1193 browser wallet provider |
+| `walletClient` | `any` | Pre-built `viem` WalletClient |
 
-#### `createCreatorDAO(params: CreatorDAOParams): Promise<string>`
-Launches a new Creator DAO by submitting an on-chain governance proposal that encodes a treasury withdrawal to the creator's wallet. Token holders vote to approve; execution releases funds. Returns the transaction hash.
+---
 
-#### `supportCreator(creatorWallet: string, amount: string | number): Promise<string>`
-Executes an on-chain USDC transfer transaction sending a nanopayment directly to the creator's wallet. Parses decimals automatically (6 decimals for USDC). Returns the transaction hash.
+### Creator DAO Methods
 
-#### `getCreatorProfile(slugOrAddress: string): Promise<CreatorProfile>`
-Fetches on-chain stats for a creator wallet merged with optional off-chain metadata. Accepts a 0x address (always) or human-readable slug (requires `creatorApiUrl`). Returns a full `CreatorProfile` object.
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `createCreatorDAO(params)` | `Promise<string>` | Deploy a SynArcCrowdfund escrow contract |
+| `supportCreatorDAO(daoAddress, amount)` | `Promise<string>` | Approve + fund an escrow contract |
+| `getCreatorDAO(daoAddress)` | `Promise<CreatorDAO>` | Read on-chain state of an escrow |
+| `getCreatorDAOs()` | `Promise<CreatorDAO[]>` | List campaigns from API or on-chain |
+| `supportCreator(wallet, amount)` | `Promise<string>` | Direct USDC nanopayment to a wallet |
+| `getCreatorProfile(slugOrAddress)` | `Promise<CreatorProfile>` | Profile with on-chain + off-chain data |
+| `getCreatorStats(wallet)` | `Promise<CreatorStats>` | Voting power + USDC balance |
+| `getCreatorCampaigns()` | `Promise<CreatorDAO[]>` | Alias for `getCreatorDAOs()` |
 
-#### `getCreatorCampaigns(): Promise<CreatorCampaign[]>`
-Returns all active Creator DAO campaigns. Scans on-chain `ProposalCreated` events for `[CreatorDAO:*]` tagged proposals, or fetches from `creatorApiUrl` if configured.
-
-#### `getCreatorStats(creatorWallet: string): Promise<CreatorStats>`
-Queries and returns the creator's voting power and USDC wallet balance:
-```typescript
-interface CreatorStats {
-  votingPower: string // Format: 18 decimals (SYN token)
-  balanceUSDC: string // Format: 6 decimals (USDC token)
-}
-```
+---
 
 ### Treasury Agent Methods
 
-#### `createRebalanceProposal(params: RebalanceProposalParams): Promise<string>`
-Submits an on-chain governance proposal to withdraw a specified amount of treasury USDC to the agent's executor wallet. Once the proposal passes, the agent can bridge the funds. Returns the transaction hash.
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `monitorTreasury()` | `Promise<MonitorTreasuryResult>` | Get balance + rebalance recommendation |
+| `createRebalanceProposal(params)` | `Promise<string>` | Submit governance rebalance proposal |
+| `executeCCTPRebalance(proposalId)` | `Promise<string>` | Execute CCTP bridge after proposal passes |
+| `getAgentActions()` | `Promise<AgentAction[]>` | History of rebalance proposals/executions |
+| `isPaused(agentAddress?)` | `Promise<boolean>` | Check if agent is emergency-stopped |
+| `pause(agentAddress?)` | `Promise<string>` | Emergency stop the agent contract |
+| `unpause(agentAddress?)` | `Promise<string>` | Resume the agent contract |
+| `getMaxRebalanceAmount(agentAddress?)` | `Promise<string>` | Get current rebalance safety limit |
+| `setMaxRebalanceAmount(amount, agentAddress?)` | `Promise<string>` | Update rebalance safety limit |
+| `queueWithdrawal(token, recipient, amount, agentAddress?)` | `Promise<string>` | Queue a timelocked payment |
+| `executeWithdrawal(id, agentAddress?)` | `Promise<string>` | Execute a queued payment after delay |
+| `cancelWithdrawal(id, agentAddress?)` | `Promise<string>` | Cancel a queued payment |
+| `getQueuedWithdrawals(agentAddress?)` | `Promise<QueuedAgentWithdrawal[]>` | List pending queued payments |
 
-#### `executeCCTPRebalance(proposalId: string): Promise<string>`
-Calls USDC approval and the CCTP `TokenMessenger` contract's `depositForBurn` function to initiate a cross-chain transfer of the rebalanced funds. Must be called after the corresponding governance proposal is Executed. Returns the transaction hash.
-
-#### `monitorTreasury(): Promise<MonitorTreasuryResult>`
-Queries treasury USDC balances and evaluates them against the configured threshold, suggesting rebalances and target domain details.
-
-#### `getAgentActions(): Promise<AgentAction[]>`
-Scans ProposalCreated events to return a history of all proposed and executed treasury rebalances.
-
-### Governance Methods
-
-#### `createProposal(params: ProposalParams): Promise<string>`
-Submits a new proposal. Supports pre-encoded templates for creator DAO flows:
-- **`funding` template:** Automatically encodes a `withdraw(recipient, amount)` call to the treasury. Requires `recipient` and `amountUSDC` in `templateParams`.
-- **`milestone` template:** Inserts structured milestone release metadata into the proposal description.
-- **`general` template:** Standard proposal format.
-
-```typescript
-interface ProposalParams {
-  title: string
-  description: string
-  targets?: string[]
-  values?: bigint[]
-  calldatas?: string[]
-  template?: 'funding' | 'milestone' | 'general'
-  templateParams?: {
-    recipient?: string
-    amountUSDC?: string | number
-    milestoneId?: number
-    milestoneTitle?: string
-  }
-}
-```
-
-#### `vote(proposalId: string, choice: VoteChoice): Promise<string>`
-Casts a vote on a proposal. Choices are `'For'`, `'Against'`, or `'Abstain'`. Automatically delegates voting power to the caller if not already delegated. Returns the transaction hash.
-
-#### `delegate(delegateeAddress?: string): Promise<string>`
-Delegates voting power to the target address. Defaults to the caller's own address. Returns the transaction hash.
-
-#### `getVotingPower(walletAddress: string): Promise<string>`
-Queries the current voting power of a wallet address.
-
-#### `getProposals(): Promise<any[]>`
-Queries all historical `ProposalCreated` events from block zero.
-
-#### `getProposalState(proposalId: string): Promise<string>`
-Returns the current state of a proposal (`'Pending'`, `'Active'`, `'Canceled'`, `'Defeated'`, `'Succeeded'`, `'Queued'`, `'Expired'`, `'Executed'`, or `'Unknown'`).
+---
 
 ### Treasury Methods
 
-#### `getTreasuryBalance(): Promise<TreasuryBalance>`
-Retrieves the formatted USDC and EURC balances currently held in the Treasury.
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getTreasuryBalance()` | `Promise<TreasuryBalance>` | USDC + EURC balances in treasury |
+| `depositUSDC(amount)` | `Promise<string>` | Deposit USDC to treasury |
+| `depositEURC(amount)` | `Promise<string>` | Deposit EURC to treasury |
+| `isTreasuryPaused()` | `Promise<boolean>` | Check if treasury is paused |
+| `pauseTreasury()` | `Promise<string>` | Emergency pause the treasury |
+| `unpauseTreasury()` | `Promise<string>` | Resume the treasury |
+| `getTreasuryQueuedWithdrawals()` | `Promise<QueuedWithdrawal[]>` | List treasury queued withdrawals |
+| `executeTreasuryWithdrawal(id)` | `Promise<string>` | Execute a treasury withdrawal |
+| `cancelTreasuryWithdrawal(id)` | `Promise<string>` | Cancel a treasury withdrawal |
 
-#### `depositUSDC(amount: string): Promise<string>`
-Deposits USDC to the Treasury. Handles approval and deposit transactions.
+---
 
-#### `depositEURC(amount: string): Promise<string>`
-Deposits EURC to the Treasury. Handles approval and deposit transactions.
+### Governance Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `createProposal(params)` | `Promise<string>` | Submit a general governance proposal |
+| `vote(proposalId, choice)` | `Promise<string>` | Vote `'For'` / `'Against'` / `'Abstain'` |
+| `delegate(delegateeAddress?)` | `Promise<string>` | Delegate voting power |
+| `getVotingPower(wallet)` | `Promise<string>` | Get voting power for a wallet |
+| `getProposals()` | `Promise<any[]>` | All historical proposals |
+| `getProposalState(proposalId)` | `Promise<string>` | Current proposal state |
 
 ---
 
 ## Sub-Modules
 
-To keep integrations modular, the SDK exposes sub-classes:
-- `SynArcCreator`: Exposes `createCreatorDAO`, `supportCreator`, `getCreatorProfile`, `getCreatorStats`, and `getCreatorCampaigns`.
-- `SynArcGovernance`: Exposes proposal and voting functions.
-- `SynArcTreasury`: Exposes treasury balance and deposit methods.
-- `SynArcTreasuryAgent`: Exposes `monitorTreasury`, `createRebalanceProposal`, `executeCCTPRebalance`, and `getAgentActions`.
+| Class | Purpose |
+|-------|---------|
+| `SynArcCreator` | Creator DAO, nanopayments, profile, campaigns |
+| `SynArcGovernance` | Proposals, voting, delegation |
+| `SynArcTreasury` | Treasury balance, deposits, pause, timelocked withdrawals |
+| `SynArcTreasuryAgent` | Rebalancing, CCTP bridging, auto payments, risk monitoring |
 
 ```typescript
-import { SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
+import { SynArcCreator, SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
+// Creator facade
+const creator = new SynArcCreator({ ...SYNARC_TESTNET, provider: window.ethereum })
+const txHash = await creator.createCreatorDAO({ name: 'My Project', description: '...', goalUSDC: 500 })
+
+// Treasury Agent facade
 const agent = new SynArcTreasuryAgent({
-  governorAddress: SYNARC_TESTNET.governor,
-  treasuryAddress: SYNARC_TESTNET.treasury,
-  tokenAddress: SYNARC_TESTNET.token,
-  tokenMessengerAddress: '0xCircleMessengerAddress',
+  ...SYNARC_TESTNET,
+  agentAddress: '0x88BdF819466C1802ce6C780a9fbdF3A314cab07D',
+  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e',
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
 })
 
-// Monitor rebalance recommendations
 const report = await agent.monitorTreasury()
 ```
 
@@ -585,9 +559,12 @@ const report = await agent.monitorTreasury()
 | Arc Mainnet | TBA | 🔜 Soon | TBA |
 
 ## Links
+
 - **Live App:** [synarcdao.xyz](https://synarcdao.xyz)
 - **GitHub:** [kellycryptos/SynArc](https://github.com/kellycryptos/SynArc)
 - **Block Explorer:** [testnet.arcscan.app](https://testnet.arcscan.app)
+- **npm:** [synarc-agent-sdk](https://www.npmjs.com/package/synarc-agent-sdk)
 
 ## License
+
 MIT
