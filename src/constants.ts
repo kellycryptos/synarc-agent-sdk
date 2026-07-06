@@ -14,7 +14,19 @@ export const ARC_TESTNET = {
 
 export const SYNARC_TESTNET = {
   governor: '0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e',
-  treasury: '0xFE0F6bF45D363d34CD5fC1781594a7471736dC18',
+
+  // ── Two-Treasury Architecture ──────────────────────────────────────────────
+  // Primary governance treasury (timelocked). Source of truth for all
+  // user-facing balance displays, dashboard stats, and governance proposals.
+  treasuryGovernance: '0xFE0F6bF45D363d34CD5fC1781594a7471736dC18',
+
+  // Agent operating treasury. Used exclusively by the autonomous treasury agent
+  // for instant CCTP rebalances. NOT surfaced in the main UI.
+  treasuryAgent: '0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63',
+
+  // Legacy alias — resolves to governance treasury.
+  get treasury() { return this.treasuryGovernance },
+
   token: '0xBd0C6b83DaBF2c04Ab762C262ea0B036d2D1368e',
   eurc: '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',
   usdc: '0x3600000000000000000000000000000000000000',
@@ -23,3 +35,6 @@ export const SYNARC_TESTNET = {
   crowdfund: '0xd5374DFC4B01F60115A52Df027704062506b3030',
 } as const;
 
+// Named exports for convenience
+export const TREASURY_GOVERNANCE_ADDRESS = SYNARC_TESTNET.treasuryGovernance;
+export const TREASURY_AGENT_ADDRESS      = SYNARC_TESTNET.treasuryAgent;

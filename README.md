@@ -27,10 +27,24 @@ npm install synarc-agent-sdk
 
 ## Deployed Contracts (Arc Testnet — Chain ID 5042002)
 
+### Two-Treasury Architecture
+
+SynArc uses two separate treasury contracts by design:
+
+- **Governance Treasury** (`0xFE0F6bF45D363d34CD5fC1781594a7471736dC18`) — The community-visible, timelocked treasury. All user-facing balance displays, governance proposals, and dashboard stats read from this contract. Withdrawals require a passing governance vote and a 24-hour timelock delay.
+- **Agent Operating Treasury** (`0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63`) — Used exclusively by the autonomous treasury agent for instant CCTP rebalances. Not surfaced to end users. Funded via governance-approved transfers from the main treasury.
+
+Import the correct address for your use case:
+
+```typescript
+import { TREASURY_GOVERNANCE_ADDRESS, TREASURY_AGENT_ADDRESS } from 'synarc-agent-sdk'
+```
+
 | Contract | Address |
 |----------|---------|
 | **SynArcGovernor** | `0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e` |
-| **SynArcTreasury** | `0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63` |
+| **Governance Treasury** *(timelocked)* | `0xFE0F6bF45D363d34CD5fC1781594a7471736dC18` |
+| **Agent Operating Treasury** *(fast-access)* | `0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63` |
 | **SynArcCrowdfund** | `0xd5374DFC4B01F60115A52Df027704062506b3030` |
 | **SynArcToken** | `0xBd0C6b83DaBF2c04Ab762C262ea0B036d2D1368e` |
 | **Treasury Agent** | `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` |
