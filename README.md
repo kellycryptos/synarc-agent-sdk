@@ -30,7 +30,8 @@ npm install synarc-agent-sdk
 | Contract | Address |
 |----------|---------|
 | **SynArcGovernor** | `0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e` |
-| **SynArcTreasury** | `0xFE0F6bF45D363d34CD5fC1781594a7471736dC18` |
+| **SynArcTreasury** | `0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63` |
+| **SynArcCrowdfund** | `0xd5374DFC4B01F60115A52Df027704062506b3030` |
 | **SynArcToken** | `0xBd0C6b83DaBF2c04Ab762C262ea0B036d2D1368e` |
 | **Treasury Agent** | `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` |
 | **USDC (Arc Testnet)** | `0x3600000000000000000000000000000000000000` |
