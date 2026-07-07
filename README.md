@@ -180,6 +180,26 @@ daos.forEach(d => {
 
 ---
 
+### Milestone Escrow Backer Voting
+
+Once a Creator DAO campaign is launched and funded, backing capital is milestone-gated. Backers can vote to release milestones or claim refunds:
+
+```typescript
+// 1. Backers vote to approve a completed milestone (voted weight matches their contribution)
+const approveTx = await synarc.approveMilestone('0xEscrowContractAddress', 0) // milestone index
+console.log(`Voted to approve milestone! Tx: ${approveTx}`)
+
+// 2. Creator/recipient withdraws milestone budget after approval (>50% support)
+const withdrawTx = await synarc.withdrawMilestone('0xEscrowContractAddress', 0)
+console.log(`Milestone budget withdrawn! Tx: ${withdrawTx}`)
+
+// 3. Backers claim their USDC refund if campaign fails to reach goal before deadline
+const refundTx = await synarc.claimRefund('0xEscrowContractAddress')
+console.log(`Refund claimed! Tx: ${refundTx}`)
+```
+
+---
+
 ### supportCreator
 
 Send a direct USDC nanopayment straight to a creator's wallet (not an escrow):
@@ -306,6 +326,10 @@ The agent continuously monitors 4 risk signals: Low Liquidity, Large Outflow, Em
 const paused = await agent.isPaused()
 console.log(`Agent paused: ${paused}`)
 
+// Query full status report (paused state, rebalance limit, queued payments)
+const statusReport = await agent.getAgentStatus()
+console.log(`Agent Status:`, statusReport)
+
 // Emergency stop — halts all agent operations
 await agent.pause()
 
@@ -318,6 +342,10 @@ console.log(`Max rebalance: ${currentLimit} USDC`)
 
 // Set a new safety limit (only owner can call this)
 await agent.setMaxRebalanceAmount(50) // 50 USDC max per rebalance
+
+// Propose returning bridged reserves back to the main Treasury contract on Arc Testnet via CCTP
+const returnTx = await agent.proposeReturnFunds(100.0) // Return 100 USDC from Sepolia
+console.log(`Return funds proposed! Tx: ${returnTx}`)
 ```
 
 ---

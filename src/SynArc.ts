@@ -106,9 +106,10 @@ export class SynArc {
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
 
-    let targets = params.targets || ['0x0000000000000000000000000000000000000000' as `0x${string}`]
-    let values = params.values || [0n]
-    let calldatas = params.calldatas || ['0x' as `0x${string}`]
+    let category = params.category || 'GENERAL_GOVERNANCE'
+    let votingDuration = BigInt(params.votingDurationSeconds || (params.votingDurationDays ? params.votingDurationDays * 24 * 60 * 60 : 300)) // default 300 seconds (5 min) matching main site
+    let treasuryImpactValue = 0n
+    let executionTarget = '0x0000000000000000000000000000000000000000' as `0x${string}`
     let descriptionDetail = params.description
 
     if (params.template === 'funding') {
@@ -118,22 +119,22 @@ export class SynArc {
         throw new Error("Funding template requires 'recipient' and 'amountUSDC' parameters.")
       }
 
-      const amountRaw = parseUnits(amount.toString() as `${number}`, 6)
-      // Encode withdraw(recipient, amount) to Treasury
-      const withdrawCalldata = encodeFunctionData({
-        abi: TREASURY_ABI,
-        functionName: 'withdraw',
-        args: [recipient, amountRaw],
-      })
-
-      targets = [this.config.treasuryAddress]
-      values = [0n]
-      calldatas = [withdrawCalldata]
+      treasuryImpactValue = parseUnits(amount.toString() as `${number}`, 6)
+      executionTarget = recipient
+      category = 'CREATOR_FUNDING'
       descriptionDetail = `[Creator Funding Request: ${amount} USDC to ${recipient}]\n\n${params.description}`
     } else if (params.template === 'milestone') {
       const milestoneId = params.templateParams?.milestoneId || 0
       const milestoneTitle = params.templateParams?.milestoneTitle || 'Milestone Completion'
+      category = 'MILESTONE_RELEASE'
       descriptionDetail = `[Creator Milestone #${milestoneId} Release Request: ${milestoneTitle}]\n\n${params.description}`
+    } else if (params.executionTarget) {
+      executionTarget = params.executionTarget
+      if (params.treasuryImpactValue !== undefined) {
+        treasuryImpactValue = typeof params.treasuryImpactValue === 'bigint'
+          ? params.treasuryImpactValue
+          : parseUnits(params.treasuryImpactValue.toString() as `${number}`, 6)
+      }
     }
 
     const description = `${params.title}\n\n${descriptionDetail}`
@@ -142,7 +143,7 @@ export class SynArc {
       address: this.config.governorAddress,
       abi: GOVERNOR_ABI,
       functionName: 'propose',
-      args: [targets, values, calldatas, description],
+      args: [params.title, description, category, votingDuration, treasuryImpactValue, executionTarget],
       account: this.getSigner(address),
     })
 
@@ -466,10 +467,38 @@ export class SynArc {
     const category = params.category || (isAgent ? 'AI Agent Fund' : 'Creator DAO')
     const usdcAddress = (this.config.usdcAddress || '0x3600000000000000000000000000000000000000') as `0x${string}`
 
-    // Single default milestone matching the main site's create-dao page
-    const milestoneTitles = ['Initial Launch Phase']
-    const milestoneAmounts = [goalRaw]
-    const milestoneDescriptions = ['Release of initial backing capital to kickstart the project.']
+    // Parse/generate milestones
+    let milestoneTitles: string[] = ['Initial Launch Phase']
+    let milestoneAmounts: bigint[] = [goalRaw]
+    let milestoneDescriptions: string[] = ['Release of initial backing capital to kickstart the project.']
+
+    if (params.milestones && params.milestones.length > 0) {
+      if (typeof params.milestones[0] === 'string') {
+        const titles = params.milestones as string[]
+        const count = titles.length
+        const baseAmount = goalRaw / BigInt(count)
+        const remainder = goalRaw % BigInt(count)
+
+        milestoneTitles = titles.map(t => t.trim())
+        milestoneAmounts = titles.map((_, i) => i === count - 1 ? baseAmount + remainder : baseAmount)
+        milestoneDescriptions = titles.map(t => `Funding allocated for completing the milestone: ${t}`)
+      } else {
+        const list = params.milestones as Array<{ title: string; amount?: string | number; description?: string }>
+        const count = list.length
+        milestoneTitles = list.map(item => item.title.trim())
+        milestoneDescriptions = list.map(item => item.description?.trim() || `Funding allocated for completing the milestone: ${item.title}`)
+
+        let totalAllocated = 0n
+        milestoneAmounts = list.map((item, i) => {
+          if (i === count - 1) {
+            return goalRaw - totalAllocated
+          }
+          const amt = item.amount ? BigInt(Math.round(parseFloat(item.amount.toString()) * 1_000_000)) : (goalRaw / BigInt(count))
+          totalAllocated += amt
+          return amt
+        })
+      }
+    }
 
     // Deploy SynArcCrowdfund contract directly from user wallet
     const deployHash = await this.walletClient.deployContract({
@@ -499,6 +528,13 @@ export class SynArc {
     if (this.config.creatorApiUrl && escrowAddress) {
       try {
         const deadline = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+        const apiMilestones = milestoneTitles.map((title, i) => ({
+          title,
+          amount: Number(milestoneAmounts[i]) / 1_000_000,
+          description: milestoneDescriptions[i],
+          status: i === 0 ? 'active' : 'pending',
+        }))
+
         await fetch(`${this.config.creatorApiUrl}/campaigns`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -511,12 +547,7 @@ export class SynArc {
             creator: address,
             recipient,
             deadline,
-            milestones: [{
-              title: 'Initial Launch Phase',
-              amount: parseFloat(goalUSDC.toString()),
-              description: 'Release of initial backing capital to kickstart the project.',
-              status: 'active',
-            }],
+            milestones: apiMilestones,
             escrowAddress,
             image: params.imageUrl || undefined,
           }),
@@ -555,11 +586,11 @@ export class SynArc {
     })
     await this.publicClient.waitForTransactionReceipt({ hash: approveTx })
 
-    // 2. Call fund() on the SynArcCrowdfund contract
+    // 2. Call contribute() on the SynArcCrowdfund contract
     const fundTx = await this.walletClient.writeContract({
       address: daoAddress,
       abi: CROWDFUND_ABI,
-      functionName: 'fund',
+      functionName: 'contribute',
       args: [amountRaw],
       account: this.getSigner(address),
     })
@@ -777,31 +808,18 @@ export class SynArc {
 
   // ─── TREASURY REBALANCER AGENT ───────────────────────────
 
-  /**
-   * createRebalanceProposal
-   * Creates a governance proposal to rebalance a specified amount of treasury USDC.
-   * Proposes to withdraw the USDC to the executor/agent wallet to prepare for CCTP.
-   */
   async createRebalanceProposal(params: RebalanceProposalParams): Promise<string> {
     this.requireWallet()
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
 
     const amountRaw = parseUnits(params.amountUSDC.toString() as `${number}`, 6)
-    const agentAddress = this.privateKeyAccount?.address || address
-
-    // Encode withdrawUSDC(recipient, amount) to Treasury
-    const withdrawCalldata = encodeFunctionData({
-      abi: TREASURY_ABI,
-      functionName: 'withdrawUSDC',
-      args: [agentAddress, amountRaw],
-    })
+    const agentAddress = this.config.agentAddress || this.privateKeyAccount?.address || address
 
     const title = params.title || `Proposed by Treasury Agent — Bridge ${params.amountUSDC} USDC to ${params.targetChain}`
     const description = 
       `Proposed by Treasury Agent\n\n` +
       `AUTONOMOUS AGENT PROPOSAL\n` +
-      `[TreasuryRebalance]\n` +
       `Amount: ${params.amountUSDC} USDC\n` +
       `Target Chain: ${params.targetChain}\n` +
       `Target Domain: ${params.targetDomain}\n` +
@@ -812,7 +830,14 @@ export class SynArc {
       address: this.config.governorAddress,
       abi: GOVERNOR_ABI,
       functionName: 'propose',
-      args: [[this.config.treasuryAddress], [0n], [withdrawCalldata], description],
+      args: [
+        title,
+        description,
+        'TREASURY_REBALANCE',
+        300n, // votingDuration: 300 seconds (5 min) matching main site
+        amountRaw, // treasuryImpactValue (USDC withdrawal amount)
+        agentAddress // executionTarget (agent contract/smart account address to receive funds)
+      ],
       account: this.getSigner(address),
     })
 
@@ -1109,6 +1134,140 @@ export class SynArc {
       functionName: 'getQueuedWithdrawals',
     })
     return list as QueuedAgentWithdrawal[]
+  }
+
+  /**
+   * approveMilestone
+   * Approves a milestone for a deployed Creator DAO campaign (backer voting).
+   * @param daoAddress - The escrow contract address.
+   * @param index - The milestone index to approve.
+   * @returns Transaction hash.
+   */
+  async approveMilestone(daoAddress: `0x${string}`, index: number): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const tx = await this.walletClient.writeContract({
+      address: daoAddress,
+      abi: CROWDFUND_ABI,
+      functionName: 'approveMilestone',
+      args: [BigInt(index)],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return tx
+  }
+
+  /**
+   * withdrawMilestone
+   * Withdraws a milestone's budget for a Creator DAO campaign (only callable by creator/recipient after approval).
+   * @param daoAddress - The escrow contract address.
+   * @param index - The milestone index to withdraw.
+   * @returns Transaction hash.
+   */
+  async withdrawMilestone(daoAddress: `0x${string}`, index: number): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const tx = await this.walletClient.writeContract({
+      address: daoAddress,
+      abi: CROWDFUND_ABI,
+      functionName: 'withdrawMilestone',
+      args: [BigInt(index)],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return tx
+  }
+
+  /**
+   * claimRefund
+   * Claims a refund if the campaign fails to reach its goal before deadline.
+   * @param daoAddress - The escrow contract address.
+   * @returns Transaction hash.
+   */
+  async claimRefund(daoAddress: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const tx = await this.walletClient.writeContract({
+      address: daoAddress,
+      abi: CROWDFUND_ABI,
+      functionName: 'claimRefund',
+      args: [],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return tx
+  }
+
+  /**
+   * getAgentStatus
+   * Returns a status report of the agent smart account including paused state, rebalance limit and queued withdrawals.
+   */
+  async getAgentStatus(agentAddress?: `0x${string}`): Promise<{
+    paused: boolean
+    maxRebalanceAmount: string
+    queuedWithdrawalsCount: number
+  }> {
+    const target = this.getAgentAddress(agentAddress)
+    const [paused, maxAmount, queued] = await Promise.all([
+      this.isAgentPaused(target),
+      this.getAgentMaxRebalanceAmount(target),
+      this.getAgentQueuedWithdrawals(target),
+    ])
+
+    return {
+      paused,
+      maxRebalanceAmount: maxAmount,
+      queuedWithdrawalsCount: queued.length,
+    }
+  }
+
+  /**
+   * proposeReturnFunds
+   * Creates a governance proposal to return bridged reserves back to the main Treasury contract on Arc Testnet via CCTP.
+   * @param amountUSDC - The amount of USDC to return.
+   * @returns Transaction hash.
+   */
+  async proposeReturnFunds(amountUSDC: string | number): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const agentAddress = this.config.agentAddress || this.privateKeyAccount?.address || address
+
+    const title = `Proposed by Treasury Agent — Return ${amountUSDC} USDC from Sepolia`
+    const description = 
+      `Proposed by Treasury Agent\n\n` +
+      `AUTONOMOUS RETURN PROPOSAL\n` +
+      `Action: return_funds\n` +
+      `Amount: ${amountUSDC} USDC\n` +
+      `Destination: Main Treasury (${this.config.treasuryAddress})\n` +
+      `Agent: ${agentAddress}\n` +
+      `Timestamp: ${new Date().toISOString()}\n\n` +
+      `This proposal was created to return bridged stablecoin reserves back to the main Treasury contract on Arc Testnet via CCTP.`
+
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.governorAddress,
+      abi: GOVERNOR_ABI,
+      functionName: 'propose',
+      args: [
+        title,
+        description,
+        'TREASURY_REBALANCE',
+        300n, // votingDuration: 300 seconds (5 min) matching main site
+        0n, // treasuryImpactValue (none, funds are returned to treasury, not withdrawn)
+        agentAddress // executionTarget
+      ],
+      account: this.getSigner(address),
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
   }
 
   // ─── HELPERS ───────────────────────────────────────────

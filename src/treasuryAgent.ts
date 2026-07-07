@@ -76,6 +76,14 @@ export class SynArcTreasuryAgent {
   }
 
   /**
+   * pauseAgent
+   * Alias for pause to match core API naming
+   */
+  async pauseAgent(agentAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.pauseAgent(agentAddress)
+  }
+
+  /**
    * unpause
    * Resumes execution of the agent contract (only callable by owner).
    */
@@ -129,5 +137,27 @@ export class SynArcTreasuryAgent {
    */
   async getQueuedWithdrawals(agentAddress?: `0x${string}`): Promise<QueuedAgentWithdrawal[]> {
     return this.synarc.getAgentQueuedWithdrawals(agentAddress)
+  }
+
+  /**
+   * getAgentStatus
+   * Returns a status report of the agent smart account including paused state, rebalance limit and queued withdrawals.
+   */
+  async getAgentStatus(agentAddress?: `0x${string}`): Promise<{
+    paused: boolean
+    maxRebalanceAmount: string
+    queuedWithdrawalsCount: number
+  }> {
+    return this.synarc.getAgentStatus(agentAddress)
+  }
+
+  /**
+   * proposeReturnFunds
+   * Creates a governance proposal to return bridged reserves back to the main Treasury contract on Arc Testnet via CCTP.
+   * @param amountUSDC - The amount of USDC to return.
+   * @returns Transaction hash.
+   */
+  async proposeReturnFunds(amountUSDC: string | number): Promise<string> {
+    return this.synarc.proposeReturnFunds(amountUSDC)
   }
 }

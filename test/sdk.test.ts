@@ -75,6 +75,9 @@ describe('SynArc SDK tests', () => {
     expect(creator.createCreatorDAO).toBeDefined()
     expect(creator.getCreatorProfile).toBeDefined()
     expect(creator.getCreatorCampaigns).toBeDefined()
+    expect(creator.approveMilestone).toBeDefined()
+    expect(creator.withdrawMilestone).toBeDefined()
+    expect(creator.claimRefund).toBeDefined()
   })
 
   it('should throw an error when createCreatorDAO is called in read-only mode', async () => {
@@ -95,6 +98,8 @@ describe('SynArc SDK tests', () => {
     expect(agent.executeCCTPRebalance).toBeDefined()
     expect(agent.monitorTreasury).toBeDefined()
     expect(agent.getAgentActions).toBeDefined()
+    expect(agent.getAgentStatus).toBeDefined()
+    expect(agent.proposeReturnFunds).toBeDefined()
   })
 
   it('should throw an error when executing rebalance or proposing in read-only mode', async () => {

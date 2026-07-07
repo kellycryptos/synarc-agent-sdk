@@ -101,4 +101,36 @@ export class SynArcCreator {
   async getCreatorCampaigns(): Promise<CreatorDAO[]> {
     return this.synarc.getCreatorDAOs()
   }
+
+  /**
+   * approveMilestone
+   * Approves a milestone for a deployed Creator DAO campaign (backer voting).
+   * @param daoAddress - The escrow contract address.
+   * @param index - The milestone index to approve.
+   * @returns Transaction hash.
+   */
+  async approveMilestone(daoAddress: `0x${string}`, index: number): Promise<string> {
+    return this.synarc.approveMilestone(daoAddress, index)
+  }
+
+  /**
+   * withdrawMilestone
+   * Withdraws a milestone's budget for a Creator DAO campaign (only callable by creator/recipient after approval).
+   * @param daoAddress - The escrow contract address.
+   * @param index - The milestone index to withdraw.
+   * @returns Transaction hash.
+   */
+  async withdrawMilestone(daoAddress: `0x${string}`, index: number): Promise<string> {
+    return this.synarc.withdrawMilestone(daoAddress, index)
+  }
+
+  /**
+   * claimRefund
+   * Claims a refund if the campaign fails to reach its goal before deadline.
+   * @param daoAddress - The escrow contract address.
+   * @returns Transaction hash.
+   */
+  async claimRefund(daoAddress: `0x${string}`): Promise<string> {
+    return this.synarc.claimRefund(daoAddress)
+  }
 }

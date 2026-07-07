@@ -37,6 +37,12 @@ export interface ProposalParams {
   calldatas?: `0x${string}`[]
   votingDurationDays?: number
 
+  // Custom Governor fields:
+  category?: string
+  votingDurationSeconds?: number
+  treasuryImpactValue?: bigint | string | number
+  executionTarget?: `0x${string}`
+
   // Creator templates:
   template?: 'funding' | 'milestone' | 'general'
   templateParams?: {
@@ -71,8 +77,8 @@ export interface CreatorDAOParams {
   recipient?: `0x${string}`
   /** Optional: recipient wallet; defaults to the caller's address */
   recipientWallet?: `0x${string}`
-  /** Optional: milestone titles for milestone-gated funding */
-  milestones?: string[]
+  /** Optional: milestone titles or structured milestones for milestone-gated funding */
+  milestones?: string[] | Array<{ title: string; amount?: string | number; description?: string }>
   /** Optional: duration of the campaign in days */
   durationDays?: number
   /** Optional: cover image URL */
