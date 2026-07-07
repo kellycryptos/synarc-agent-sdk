@@ -71,6 +71,23 @@ const balance = await synarc.getTreasuryBalance()
 console.log(`Treasury: ${balance.usdc} USDC / ${balance.eurc} EURC`)
 ```
 
+### Sync Direct Transfers (Fund Agent Treasury)
+
+If a treasury receives USDC via direct ERC20 transfers (e.g., from governance-gated funding transfers to the Agent Operating Treasury), you must sync the internal balance tracking variables:
+
+```typescript
+import { SynArc, SYNARC_TESTNET, TREASURY_AGENT_ADDRESS } from 'synarc-agent-sdk'
+
+const synarc = new SynArc({
+  ...SYNARC_TESTNET,
+  provider: window.ethereum,
+})
+
+// Trigger balance sync on the Agent Operating Treasury
+const txHash = await synarc.syncBalance(TREASURY_AGENT_ADDRESS)
+console.log(`Balances synced! Tx: ${txHash}`)
+```
+
 ### Fan Nanopayment (Direct USDC Support)
 
 ```typescript
@@ -515,6 +532,7 @@ const synarc = new SynArc({
 | `getTreasuryBalance()` | `Promise<TreasuryBalance>` | USDC + EURC balances in treasury |
 | `depositUSDC(amount)` | `Promise<string>` | Deposit USDC to treasury |
 | `depositEURC(amount)` | `Promise<string>` | Deposit EURC to treasury |
+| `syncBalance(customTreasuryAddress?)` | `Promise<string>` | Sync internal balance state with actual contract ERC20 balance |
 | `isTreasuryPaused()` | `Promise<boolean>` | Check if treasury is paused |
 | `pauseTreasury()` | `Promise<string>` | Emergency pause the treasury |
 | `unpauseTreasury()` | `Promise<string>` | Resume the treasury |
