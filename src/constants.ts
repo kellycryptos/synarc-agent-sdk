@@ -22,7 +22,7 @@ export const SYNARC_TESTNET = {
 
   // Agent operating treasury. Used exclusively by the autonomous treasury agent
   // for instant CCTP rebalances. NOT surfaced in the main UI.
-  treasuryAgent: '0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63',
+  treasuryAgent: '0xE6bAC65d7f060B805B8dd6f1c4DBfa6571905f28',
 
   // Legacy alias — resolves to governance treasury.
   get treasury() { return this.treasuryGovernance },
