@@ -60,6 +60,7 @@ describe('SynArc SDK tests', () => {
     expect(treasury.getTreasuryBalance).toBeDefined()
     expect(treasury.depositUSDC).toBeDefined()
     expect(treasury.depositEURC).toBeDefined()
+    expect(treasury.syncBalance).toBeDefined()
   })
 
   it('should instantiate SynArcCreator and delegate to SynArc correctly', () => {

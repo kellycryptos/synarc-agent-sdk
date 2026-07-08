@@ -309,6 +309,35 @@ export class SynArc {
     return depositTx
   }
 
+  /**
+   * syncBalance
+   * Synchronizes the internal balance tracking variables on the Treasury contract
+   * with the actual ERC20 balances held by the contract.
+   * Useful when direct ERC20 transfers (e.g. from governance funding) are received.
+   * @param customTreasuryAddress - Optional custom treasury contract address to sync.
+   * @returns Transaction hash.
+   */
+  async syncBalance(customTreasuryAddress?: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const targetTreasury = customTreasuryAddress || this.config.treasuryAddress
+    if (!targetTreasury) {
+      throw new Error('Treasury address is required for syncBalance.')
+    }
+
+    const tx = await this.walletClient.writeContract({
+      address: targetTreasury,
+      abi: TREASURY_ABI,
+      functionName: 'syncBalance',
+      args: [],
+      account: this.getSigner(address),
+    })
+    await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return tx
+  }
+
   async isTreasuryPaused(): Promise<boolean> {
     return this.publicClient.readContract({
       address: this.config.treasuryAddress,

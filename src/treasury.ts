@@ -51,4 +51,15 @@ export class SynArcTreasury {
   async setWithdrawalDelay(newDelay: string | number | bigint): Promise<string> {
     return this.synarc.setTreasuryWithdrawalDelay(newDelay)
   }
+
+  /**
+   * syncBalance
+   * Synchronizes the internal balance tracking variables on the Treasury contract
+   * with the actual ERC20 balances held by the contract.
+   * @param customTreasuryAddress - Optional custom treasury contract address to sync.
+   * @returns Transaction hash.
+   */
+  async syncBalance(customTreasuryAddress?: `0x${string}`): Promise<string> {
+    return this.synarc.syncBalance(customTreasuryAddress)
+  }
 }
