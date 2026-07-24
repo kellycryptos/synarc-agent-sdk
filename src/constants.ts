@@ -38,3 +38,6 @@ export const SYNARC_TESTNET = {
 // Named exports for convenience
 export const TREASURY_GOVERNANCE_ADDRESS = SYNARC_TESTNET.treasuryGovernance;
 export const TREASURY_AGENT_ADDRESS      = SYNARC_TESTNET.treasuryAgent;
+
+// Gas price floor required by Arc Testnet (20 Gwei)
+export const DEFAULT_GAS_PRICE = 20000000000n;

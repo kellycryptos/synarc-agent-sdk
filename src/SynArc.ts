@@ -139,12 +139,14 @@ export class SynArc {
 
     const description = `${params.title}\n\n${descriptionDetail}`
 
+    const gasParams = await this.getGasParams()
     const txHash = await this.walletClient.writeContract({
       address: this.config.governorAddress,
       abi: GOVERNOR_ABI,
       functionName: 'propose',
       args: [params.title, description, category, votingDuration, treasuryImpactValue, executionTarget],
       account: this.getSigner(address),
+      ...gasParams,
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -161,12 +163,14 @@ export class SynArc {
     // Check and auto-delegate first
     await this.ensureDelegated()
 
+    const gasParams = await this.getGasParams()
     const txHash = await this.walletClient.writeContract({
       address: this.config.governorAddress,
       abi: GOVERNOR_ABI,
       functionName: 'castVote',
       args: [BigInt(proposalId), support],
       account: this.getSigner(address),
+      ...gasParams,
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -179,12 +183,14 @@ export class SynArc {
     if (!address) throw new Error('No address found for connected wallet')
     const target = delegateeAddress || address
 
+    const gasParams = await this.getGasParams()
     const txHash = await this.walletClient.writeContract({
       address: this.config.tokenAddress,
       abi: TOKEN_ABI,
       functionName: 'delegate',
       args: [target],
       account: this.getSigner(address),
+      ...gasParams,
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -443,6 +449,7 @@ export class SynArc {
     const amountRaw = parseUnits(amount.toString() as `${number}`, 6)
     const usdcAddress = this.config.usdcAddress || '0x3600000000000000000000000000000000000000'
 
+    const gasParams = await this.getGasParams()
     // Send direct USDC nanopayment
     const txHash = await this.walletClient.writeContract({
       address: usdcAddress,
@@ -450,6 +457,7 @@ export class SynArc {
       functionName: 'transfer',
       args: [creatorWallet, amountRaw],
       account: this.getSigner(address),
+      ...gasParams,
     })
 
     await this.publicClient.waitForTransactionReceipt({ hash: txHash })
@@ -604,16 +612,30 @@ export class SynArc {
 
     const usdcAddress = (this.config.usdcAddress || '0x3600000000000000000000000000000000000000') as `0x${string}`
     const amountRaw = parseUnits(amount.toString() as `${number}`, 6)
+    const gasParams = await this.getGasParams()
 
-    // 1. Approve USDC transfer to the escrow contract
-    const approveTx = await this.walletClient.writeContract({
-      address: usdcAddress,
-      abi: ERC20_ABI,
-      functionName: 'approve',
-      args: [daoAddress, amountRaw],
-      account: this.getSigner(address),
-    })
-    await this.publicClient.waitForTransactionReceipt({ hash: approveTx })
+    // 1. Check existing allowance first
+    let currentAllowance = 0n
+    try {
+      currentAllowance = await this.publicClient.readContract({
+        address: usdcAddress,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [address, daoAddress],
+      }) as bigint
+    } catch (_) {}
+
+    if (currentAllowance < amountRaw) {
+      const approveTx = await this.walletClient.writeContract({
+        address: usdcAddress,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [daoAddress, amountRaw],
+        account: this.getSigner(address),
+        ...gasParams,
+      })
+      await this.publicClient.waitForTransactionReceipt({ hash: approveTx })
+    }
 
     // 2. Call contribute() on the SynArcCrowdfund contract
     const fundTx = await this.walletClient.writeContract({
@@ -622,6 +644,7 @@ export class SynArc {
       functionName: 'contribute',
       args: [amountRaw],
       account: this.getSigner(address),
+      ...gasParams,
     })
     await this.publicClient.waitForTransactionReceipt({ hash: fundTx })
     return fundTx
@@ -1300,6 +1323,16 @@ export class SynArc {
   }
 
   // ─── HELPERS ───────────────────────────────────────────
+
+  private async getGasParams(): Promise<{ gasPrice: bigint }> {
+    try {
+      const price = await this.publicClient.getGasPrice()
+      const buffered = (price * 150n) / 100n
+      return { gasPrice: buffered > 20000000000n ? buffered : 20000000000n }
+    } catch {
+      return { gasPrice: 20000000000n }
+    }
+  }
 
   private requireWallet(): void {
     if (this.isReadOnly()) {
