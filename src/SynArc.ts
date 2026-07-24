@@ -1324,13 +1324,12 @@ export class SynArc {
 
   // ─── HELPERS ───────────────────────────────────────────
 
-  private async getGasParams(): Promise<{ gasPrice: bigint }> {
+  private async getGasParams(): Promise<{ gasPrice?: bigint }> {
     try {
       const price = await this.publicClient.getGasPrice()
-      const buffered = (price * 150n) / 100n
-      return { gasPrice: buffered > 20000000000n ? buffered : 20000000000n }
+      return { gasPrice: (price * 125n) / 100n }
     } catch {
-      return { gasPrice: 20000000000n }
+      return {}
     }
   }
 
