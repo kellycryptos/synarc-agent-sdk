@@ -1,7 +1,12 @@
 export interface SynArcConfig {
-  governorAddress: `0x${string}`
-  treasuryAddress: `0x${string}`
-  tokenAddress: `0x${string}`
+  /** Target network: 'testnet' (default) or 'mainnet' */
+  network?: 'testnet' | 'mainnet'
+  /** Target chain ID: 5042002 (Arc Testnet) or 5042 (Arc Mainnet placeholder) */
+  chainId?: number
+
+  governorAddress?: `0x${string}`
+  treasuryAddress?: `0x${string}`
+  tokenAddress?: `0x${string}`
   eurcAddress?: `0x${string}`
   usdcAddress?: `0x${string}`
   rpcUrl?: string
@@ -22,6 +27,7 @@ export interface SynArcConfig {
   provider?: any                  // Any EIP-1193 provider — browser wallets
   walletClient?: any              // Pre-built viem walletClient
 }
+
 
 export type WalletType =
   | 'private-key'   // AI agent

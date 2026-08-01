@@ -9,7 +9,7 @@ import {
   encodeFunctionData,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { ARC_TESTNET } from './constants'
+import { ARC_TESTNET, ARC_MAINNET, SYNARC_TESTNET, SYNARC_MAINNET } from './constants'
 import {
   SynArcConfig,
   ProposalParams,
@@ -38,18 +38,33 @@ export class SynArc {
   public walletType: string = 'read-only'
 
   constructor(config: SynArcConfig) {
-    this.config = config
+    const isMainnet = config.network === 'mainnet' || config.chainId === 5042
+    const targetChain = isMainnet ? ARC_MAINNET : ARC_TESTNET
+    const defaultContracts = isMainnet ? SYNARC_MAINNET : SYNARC_TESTNET
+
+    this.config = {
+      ...config,
+      governorAddress: config.governorAddress || (defaultContracts.governor as `0x${string}`),
+      treasuryAddress: config.treasuryAddress || (defaultContracts.treasuryGovernance as `0x${string}`),
+      tokenAddress: config.tokenAddress || (defaultContracts.token as `0x${string}`),
+      eurcAddress: config.eurcAddress || (defaultContracts.eurc as `0x${string}`),
+      usdcAddress: config.usdcAddress || (defaultContracts.usdc as `0x${string}`),
+      tokenMessengerAddress: config.tokenMessengerAddress || (defaultContracts.tokenMessenger as `0x${string}`),
+      agentAddress: config.agentAddress || (defaultContracts.agent as `0x${string}`),
+    }
+
+    const defaultRpc = isMainnet ? 'https://rpc.arc.network' : 'https://rpc.testnet.arc.network'
+    const fallbackRpc = isMainnet ? 'https://arc-mainnet.drpc.org' : 'https://arc-testnet.drpc.org'
 
     // Build transport with fallbacks
     const transport = fallback([
-      http(config.rpcUrl || 'https://rpc.testnet.arc.network'),
-      http('https://arc-testnet.drpc.org'),
-      http('https://5042002.rpc.thirdweb.com'),
+      http(config.rpcUrl || defaultRpc),
+      http(fallbackRpc),
     ])
 
     // Always create public client for reads
     this.publicClient = createPublicClient({
-      chain: ARC_TESTNET,
+      chain: targetChain,
       transport,
     })
 
@@ -60,7 +75,7 @@ export class SynArc {
       this.privateKeyAccount = account
       this.walletClient = createWalletClient({
         account,
-        chain: ARC_TESTNET,
+        chain: targetChain,
         transport,
       })
       this.walletType = 'private-key'
@@ -68,7 +83,7 @@ export class SynArc {
     } else if (config.provider) {
       // Any EIP-1193 provider — MetaMask, Privy, Circle, Coinbase etc
       this.walletClient = createWalletClient({
-        chain: ARC_TESTNET,
+        chain: targetChain,
         transport: custom(config.provider),
       })
       this.walletType = 'injected'
@@ -83,6 +98,7 @@ export class SynArc {
       this.walletType = 'read-only'
     }
   }
+
 
   // Check if wallet is available
   isReadOnly(): boolean {
