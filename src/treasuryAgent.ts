@@ -5,7 +5,7 @@ import { SynArcConfig, RebalanceProposalParams, MonitorTreasuryResult, AgentActi
  * SynArcTreasuryAgent
  * Focused submodule facade for Treasury Rebalancer Agent interactions — monitoring,
  * proposing, and executing CCTP rebalances.
- * Wraps the core SynArc client and delegates all calls to it.
+ * Wraps the core Syn DAO client and delegates all calls to it.
  */
 export class SynArcTreasuryAgent {
   private synarc: SynArc

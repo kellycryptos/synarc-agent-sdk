@@ -501,7 +501,7 @@ export class SynArc {
   /**
    * createCreatorDAO
    * Deploys a SynArcCrowdfund escrow contract directly from the user's wallet.
-   * This matches the main site's create-dao flow — the contract holds raised USDC in
+   * This matches the main Syn DAO site's create-dao flow — the contract holds raised USDC in
    * milestone escrow and releases to the recipient when milestones are met.
    * @returns Transaction hash of the deployment.
    */
@@ -616,7 +616,7 @@ export class SynArc {
   /**
    * supportCreatorDAO
    * Sends USDC directly to a deployed SynArcCrowdfund escrow contract.
-   * Equivalent to the "Fund" button on the main site's creator DAO page.
+   * Equivalent to the "Fund" button on the main Syn DAO site's creator DAO page.
    * @param daoAddress - The escrow contract address of the Creator DAO.
    * @param amount - Amount in USDC (e.g. 5, 10, 100).
    * @returns Transaction hash.

@@ -1,8 +1,10 @@
-# synarc-agent-sdk
+# synarc-agent-sdk — Syn DAO Agent SDK (formerly SynArc)
 
-> **The official SDK for SynArc** — build Creator DAOs, autonomous treasury agents, and cross-chain payment flows on the Arc Network.
+> Package name unchanged for backwards compatibility. Product is now **Syn DAO**, built on Arc.
 
-Most community treasury tools require manual intervention, governance bottlenecks, and fragile bridging mechanics. SynArc fixes that by combining **milestone-gated Creator DAOs**, an **Automated Treasury Guard**, and **Circle CCTP** into one composable SDK.
+> **The official SDK for Syn DAO** — build Creator DAOs, autonomous treasury agents, and cross-chain payment flows on the Arc Network.
+
+Most community treasury tools require manual intervention, governance bottlenecks, and fragile bridging mechanics. Syn DAO fixes that by combining **milestone-gated Creator DAOs**, an **Automated Treasury Guard**, and **Circle CCTP** into one composable SDK.
 
 ---
 
@@ -27,7 +29,7 @@ npm install synarc-agent-sdk
 
 ## Deployed Contracts & Network Reference
 
-Below is the official network configuration and deployed smart contract addresses for SynArc on the Arc Testnet (`chainId: 5042002`).
+Below is the official network configuration and deployed smart contract addresses for Syn DAO on the Arc Testnet (`chainId: 5042002`).
 
 | Configuration / Contract | Value / Address | Description |
 |:---|:---|:---|
@@ -45,7 +47,7 @@ Below is the official network configuration and deployed smart contract addresse
 
 ### Two-Treasury Architecture
 
-SynArc uses two separate treasury contracts by design:
+Syn DAO uses two separate treasury contracts by design:
 
 - **Governance Treasury** (`0xFE0F6bF45D363d34CD5fC1781594a7471736dC18`) — The community-visible, timelocked treasury. All user-facing balance displays, governance proposals, and dashboard stats read from this contract. Withdrawals require a passing governance vote and a 24-hour timelock delay.
 - **Agent Operating Treasury** (`0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63`) — Used exclusively by the autonomous treasury agent for instant CCTP rebalances. Not surfaced to end users. Funded via governance-approved transfers from the main treasury.
@@ -59,7 +61,7 @@ import { TREASURY_GOVERNANCE_ADDRESS, TREASURY_AGENT_ADDRESS } from 'synarc-agen
 
 ## Circle & Agent Integrations Reference
 
-SynArc integrates with the Circle ecosystem and autonomous systems to power its rebalancing, governance, and onboarding systems:
+Syn DAO integrates with the Circle ecosystem and autonomous systems to power its rebalancing, governance, and onboarding systems:
 
 *   **Circle CCTP (Cross-Chain Transfer Protocol)** — *Fully Deployed & Functional*: Handles native burn-and-mint USDC routing between Arc Testnet and Ethereum Sepolia. In `lib/agent/cctp-executor.ts`, the system executes burns, polls Circle's Iris attestation API for validation consensus, and triggers mint receipts on the destination Messenger contract.
 *   **Circle Gateway (x402 Nanopayments)** — *Simulated/Planned*: Tracks AI model execution fees for each inference call in `lib/agent/gateway-payments.ts`. The codebase contains hooks to deduct USDC internally for every Groq API request, awaiting live production endpoints to route actual on-chain fee payments.
@@ -487,7 +489,7 @@ const synarc = new SynArc({ ...SYNARC_TESTNET, provider })
 ```typescript
 import { CoinbaseWalletSDK } from '@coinbase/wallet-sdk'
 
-const coinbase = new CoinbaseWalletSDK({ appName: 'SynArc' })
+const coinbase = new CoinbaseWalletSDK({ appName: 'Syn DAO' })
 const provider = coinbase.makeWeb3Provider()
 const synarc = new SynArc({ ...SYNARC_TESTNET, provider })
 ```
@@ -637,7 +639,7 @@ const report = await agent.monitorTreasury()
 ## Links
 
 - **Live App:** [synarcdao.xyz](https://synarcdao.xyz)
-- **GitHub:** [kellycryptos/SynArc](https://github.com/kellycryptos/SynArc)
+- **GitHub:** [kellycryptos/synarc-agent-sdk](https://github.com/kellycryptos/synarc-agent-sdk)
 - **Block Explorer:** [testnet.arcscan.app](https://testnet.arcscan.app)
 - **npm:** [synarc-agent-sdk](https://www.npmjs.com/package/synarc-agent-sdk)
 

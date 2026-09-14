@@ -1,7 +1,7 @@
 {
   "name": "synarc-agent-sdk",
-  "version": "0.5.6",
-  "description": "SDK for integrating SynArc Creator DAOs, nanopayments, governance, and treasury on Arc Network",
+  "version": "0.5.7",
+  "description": "Agent SDK for Syn DAO — Built on Arc",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

@@ -30,7 +30,7 @@ export const ARC_MAINNET = {
 export const SYNARC_TESTNET = {
   governor: '0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e',
 
-  // ── Two-Treasury Architecture ──────────────────────────────────────────────
+  // ── Two-Treasury Architecture (Syn DAO) ───────────────────────────────────
   // Primary governance treasury (timelocked). Source of truth for all
   // user-facing balance displays, dashboard stats, and governance proposals.
   treasuryGovernance: '0xFE0F6bF45D363d34CD5fC1781594a7471736dC18',
