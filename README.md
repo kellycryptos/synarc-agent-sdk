@@ -585,6 +585,18 @@ const synarc = new SynArc({
 | `executeTreasuryWithdrawal(id)` | `Promise<string>` | Execute a treasury withdrawal |
 | `cancelTreasuryWithdrawal(id)` | `Promise<string>` | Cancel a treasury withdrawal |
 
+### Tameion Escrow Release Valve Methods (Arc Mainnet 5042)
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getAgentReleaseCap()` | `Promise<number>` | On-chain agent release cap in USDC (default: 50.00 USDC) |
+| `isAuthorizedAgent(account)` | `Promise<boolean>` | Check if address is an authorized autonomous agent |
+| `isAuthorizedReviewer(account)` | `Promise<boolean>` | Check if address is an authorized human/multisig reviewer |
+| `getReleaseAuthorization(caller, amount, releaseKey)` | `Promise<ReleaseAuthorization>` | Pre-flight authorization status, cap, and required approvers |
+| `setAgentReleaseCap(newCap)` | `Promise<string>` | Update on-chain cap (Governor / Owner only) |
+| `setAuthorizedAgent(agent, authorized)` | `Promise<string>` | Grant/revoke agent release role |
+| `setAuthorizedHumanReviewer(reviewer, authorized)` | `Promise<string>` | Grant/revoke human reviewer role |
+
 ---
 
 ### Governance Methods
@@ -633,14 +645,15 @@ const report = await agent.monitorTreasury()
 
 | Network | Chain ID | Status | RPC URL |
 |---------|----------|--------|---------|
+| Arc Mainnet | 5042 | 🚀 Shipping Window (5042) | `https://rpc.mainnet.arc.io` |
 | Arc Testnet | 5042002 | ✅ Live | `https://rpc.testnet.arc.network` |
-| Arc Mainnet | TBA | 🔜 Soon | TBA |
 
 ## Links
 
 - **Live App:** [synarcdao.xyz](https://synarcdao.xyz)
+- **Twitter / X:** [@syndaopro](https://x.com/syndaopro)
 - **GitHub:** [kellycryptos/synarc-agent-sdk](https://github.com/kellycryptos/synarc-agent-sdk)
-- **Block Explorer:** [testnet.arcscan.app](https://testnet.arcscan.app)
+- **Block Explorer:** [explorer.arc.io](https://explorer.arc.io) (Mainnet 5042) · [testnet.arcscan.app](https://testnet.arcscan.app) (Testnet)
 - **npm:** [synarc-agent-sdk](https://www.npmjs.com/package/synarc-agent-sdk)
 
 ## License

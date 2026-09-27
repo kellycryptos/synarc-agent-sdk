@@ -1,5 +1,14 @@
 import { SynArc } from './SynArc'
-import { SynArcConfig, RebalanceProposalParams, MonitorTreasuryResult, AgentAction, QueuedAgentWithdrawal } from './types'
+import {
+  SynArcConfig,
+  RebalanceProposalParams,
+  MonitorTreasuryResult,
+  AgentAction,
+  QueuedAgentWithdrawal,
+  SimulationResult,
+  ReleaseMilestoneParams,
+  ReleaseAuthorization,
+} from './types'
 
 /**
  * SynArcTreasuryAgent
@@ -159,5 +168,59 @@ export class SynArcTreasuryAgent {
    */
   async proposeReturnFunds(amountUSDC: string | number): Promise<string> {
     return this.synarc.proposeReturnFunds(amountUSDC)
+  }
+
+  // ─── THREE-WAY MATCH & ADVERSARIAL ESCROW ─────────────────
+
+  /**
+   * simulateRelease
+   * Dry-run simulation previewing a milestone release before execution (Ghostfolio pattern).
+   */
+  async simulateRelease(params: ReleaseMilestoneParams): Promise<SimulationResult> {
+    return this.synarc.simulateRelease(params)
+  }
+
+  /**
+   * releaseMilestone
+   * Executes a contract-level Three-Way Match release of treasury funds.
+   */
+  async releaseMilestone(params: ReleaseMilestoneParams): Promise<string> {
+    return this.synarc.releaseMilestone(params)
+  }
+
+  /**
+   * requestPayeeChange
+   * Requests a payout address update with an on-chain timelocked cooldown (defense against payee substitution).
+   */
+  async requestPayeeChange(proposalId: string | number | bigint, newTarget: `0x${string}`): Promise<string> {
+    return this.synarc.requestPayeeChange(proposalId, newTarget)
+  }
+
+  /**
+   * confirmPayeeChange
+   * Confirms a pending payout target update after the mandatory cooldown period expires.
+   */
+  async confirmPayeeChange(proposalId: string | number | bigint): Promise<string> {
+    return this.synarc.confirmPayeeChange(proposalId)
+  }
+
+  /**
+   * getAgentReleaseCap
+   * Returns on-chain cap (in micro-USDC) under which agent can release without human signoff.
+   */
+  async getAgentReleaseCap(): Promise<bigint> {
+    return this.synarc.getAgentReleaseCap()
+  }
+
+  /**
+   * getReleaseAuthorization
+   * Evaluates who can release and whether the release stops for human review under on-chain caps.
+   */
+  async getReleaseAuthorization(
+    caller: `0x${string}`,
+    amountUSDC: string | number,
+    releaseKey: `0x${string}`
+  ): Promise<ReleaseAuthorization> {
+    return this.synarc.getReleaseAuthorization(caller, amountUSDC, releaseKey)
   }
 }

@@ -1276,6 +1276,167 @@ export const TREASURY_ABI = [
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "proposalId", "type": "uint256" },
+      { "internalType": "uint256", "name": "milestoneId", "type": "uint256" },
+      { "internalType": "bytes32", "name": "documentHash", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "invoiceHash", "type": "bytes32" },
+      { "internalType": "address", "name": "recipient", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "internalType": "uint8", "name": "aiConfidenceScore", "type": "uint8" }
+    ],
+    "name": "simulateRelease",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "bool", "name": "canRelease", "type": "bool" },
+          { "internalType": "bool", "name": "isDuplicate", "type": "bool" },
+          { "internalType": "bool", "name": "orderMatches", "type": "bool" },
+          { "internalType": "bool", "name": "receiptMatches", "type": "bool" },
+          { "internalType": "bool", "name": "invoiceMatches", "type": "bool" },
+          { "internalType": "bool", "name": "payeeMatches", "type": "bool" },
+          { "internalType": "bool", "name": "payeeCooldownActive", "type": "bool" },
+          { "internalType": "bool", "name": "requiresHumanApproval", "type": "bool" },
+          { "internalType": "bool", "name": "sufficientBalance", "type": "bool" },
+          { "internalType": "string", "name": "statusMessage", "type": "string" },
+          { "internalType": "uint256", "name": "returnCode", "type": "uint256" }
+        ],
+        "internalType": "struct SynArcTreasury.SimulationResult",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "proposalId", "type": "uint256" },
+      { "internalType": "uint256", "name": "milestoneId", "type": "uint256" },
+      { "internalType": "bytes32", "name": "documentHash", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "invoiceHash", "type": "bytes32" },
+      { "internalType": "address", "name": "recipient", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "internalType": "uint8", "name": "aiConfidenceScore", "type": "uint8" }
+    ],
+    "name": "releaseMilestone",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "proposalId", "type": "uint256" },
+      { "internalType": "uint256", "name": "milestoneId", "type": "uint256" },
+      { "internalType": "address", "name": "recipient", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "internalType": "bytes32", "name": "expectedDocumentHash", "type": "bytes32" },
+      { "internalType": "string", "name": "deliverableURI", "type": "string" }
+    ],
+    "name": "registerOrder",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "proposalId", "type": "uint256" },
+      { "internalType": "address", "name": "newTarget", "type": "address" }
+    ],
+    "name": "requestPayeeChange",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "proposalId", "type": "uint256" }
+    ],
+    "name": "confirmPayeeChange",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "releaseKey", "type": "bytes32" }
+    ],
+    "name": "approveReleaseHuman",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "agentReleaseCap",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "humanReviewThreshold",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "newCap", "type": "uint256" }],
+    "name": "setAgentReleaseCap",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "agent", "type": "address" },
+      { "internalType": "bool", "name": "authorized", "type": "bool" }
+    ],
+    "name": "setAuthorizedAgent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "reviewer", "type": "address" },
+      { "internalType": "bool", "name": "authorized", "type": "bool" }
+    ],
+    "name": "setAuthorizedHumanReviewer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "account", "type": "address" }],
+    "name": "isAuthorizedAgent",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "account", "type": "address" }],
+    "name": "isAuthorizedReviewer",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "internalType": "bytes32", "name": "releaseKey", "type": "bytes32" }
+    ],
+    "name": "getReleaseAuthorization",
+    "outputs": [
+      { "internalType": "bool", "name": "canReleaseDirectly", "type": "bool" },
+      { "internalType": "bool", "name": "requiresHumanApproval", "type": "bool" },
+      { "internalType": "string", "name": "releaseRole", "type": "string" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ] as const;
 

@@ -269,4 +269,61 @@ export interface CreatorDAO {
   twitter?: string | null
 }
 
+// ─── THREE-WAY MATCH & ADVERSARIAL ESCROW ──────────────────
 
+export interface OrderTerms {
+  proposalId: bigint | number
+  milestoneId: bigint | number
+  recipient: `0x${string}`
+  amountUSDC: string | number
+  expectedDocumentHash: `0x${string}`
+  deliverableURI: string
+}
+
+export interface SimulationResult {
+  canRelease: boolean
+  isDuplicate: boolean
+  orderMatches: boolean
+  receiptMatches: boolean
+  invoiceMatches: boolean
+  payeeMatches: boolean
+  payeeCooldownActive: boolean
+  requiresHumanApproval: boolean
+  sufficientBalance: boolean
+  statusMessage: string
+  returnCode: number
+}
+
+export interface ReleaseMilestoneParams {
+  proposalId: string | number | bigint
+  milestoneId: string | number | bigint
+  documentHash: `0x${string}`
+  invoiceHash: `0x${string}`
+  recipient: `0x${string}`
+  amountUSDC: string | number
+  aiConfidenceScore: number
+}
+
+export interface PayeeRecord {
+  currentTarget: `0x${string}`
+  pendingTarget: `0x${string}`
+  cooldownExpiry: bigint
+  hasPendingChange: boolean
+}
+
+export interface ReleaseEntry {
+  proposalId: bigint
+  milestoneId: bigint
+  documentHash: `0x${string}`
+  invoiceHash: `0x${string}`
+  recipient: `0x${string}`
+  amount: bigint
+  timestamp: bigint
+  executed: boolean
+}
+
+export interface ReleaseAuthorization {
+  canReleaseDirectly: boolean
+  requiresHumanApproval: boolean
+  releaseRole: string
+}

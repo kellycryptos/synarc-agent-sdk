@@ -27,6 +27,12 @@ import {
   QueuedAgentWithdrawal,
   CreatorDAO,
   CreatorDAOMilestone,
+  SimulationResult,
+  ReleaseMilestoneParams,
+  OrderTerms,
+  PayeeRecord,
+  ReleaseEntry,
+  ReleaseAuthorization,
 } from './types'
 import { GOVERNOR_ABI, TREASURY_ABI, TOKEN_ABI, ERC20_ABI, TOKEN_MESSENGER_ABI, AGENT_ABI, CROWDFUND_ABI, CROWDFUND_BYTECODE } from './abis'
 
@@ -455,7 +461,292 @@ export class SynArc {
     return txHash
   }
 
+  // ─── THREE-WAY MATCH & ADVERSARIAL ESCROW ─────────────────
 
+  /**
+   * simulateRelease
+   * Dry-run simulation previewing a milestone release against live contract state (Ghostfolio pattern).
+   * Checks order, receipt, invoice, payee cooldown, AI confidence, and human review gates without committing state.
+   */
+  async simulateRelease(params: ReleaseMilestoneParams): Promise<SimulationResult> {
+    const amountRaw = parseUnits(params.amountUSDC.toString() as `${number}`, 6)
+    const result = await this.publicClient.readContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'simulateRelease',
+      args: [
+        BigInt(params.proposalId),
+        BigInt(params.milestoneId),
+        params.documentHash,
+        params.invoiceHash,
+        params.recipient,
+        amountRaw,
+        params.aiConfidenceScore,
+      ],
+    })
+    return result as SimulationResult
+  }
+
+  /**
+   * releaseMilestone
+   * Executes a contract-level Three-Way Match release of treasury funds.
+   * Reverts loudly on-chain if document hash, payee, amount, or confidence score mismatch.
+   */
+  async releaseMilestone(params: ReleaseMilestoneParams): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const amountRaw = parseUnits(params.amountUSDC.toString() as `${number}`, 6)
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'releaseMilestone',
+      args: [
+        BigInt(params.proposalId),
+        BigInt(params.milestoneId),
+        params.documentHash,
+        params.invoiceHash,
+        params.recipient,
+        amountRaw,
+        params.aiConfidenceScore,
+      ],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * registerOrder
+   * Registers on-chain order terms (proposal ID, milestone ID, expected deliverable hash, payee, and budget).
+   */
+  async registerOrder(terms: OrderTerms): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const amountRaw = parseUnits(terms.amountUSDC.toString() as `${number}`, 6)
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'registerOrder',
+      args: [
+        BigInt(terms.proposalId),
+        BigInt(terms.milestoneId),
+        terms.recipient,
+        amountRaw,
+        terms.expectedDocumentHash,
+        terms.deliverableURI,
+      ],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * requestPayeeChange
+   * Requests a payout address update with an on-chain timelocked cooldown (defense against payee substitution).
+   */
+  async requestPayeeChange(proposalId: string | number | bigint, newTarget: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'requestPayeeChange',
+      args: [BigInt(proposalId), newTarget],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * confirmPayeeChange
+   * Confirms a pending payout target update after the mandatory cooldown period expires.
+   */
+  async confirmPayeeChange(proposalId: string | number | bigint): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'confirmPayeeChange',
+      args: [BigInt(proposalId)],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * approveReleaseHuman
+   * Grants human/multisig approval for high-value milestone releases exceeding the humanReviewThreshold.
+   */
+  async approveReleaseHuman(releaseKey: `0x${string}`): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'approveReleaseHuman',
+      args: [releaseKey],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * getAgentReleaseCap
+   * Returns the on-chain cap (in micro-USDC) under which an autonomous agent can release funds without human approval.
+   */
+  async getAgentReleaseCap(): Promise<bigint> {
+    return this.publicClient.readContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'agentReleaseCap',
+    }) as Promise<bigint>
+  }
+
+  /**
+   * isAuthorizedAgent
+   * Checks whether an address is an authorized autonomous agent on the treasury release valve.
+   */
+  async isAuthorizedAgent(account: `0x${string}`): Promise<boolean> {
+    return this.publicClient.readContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'isAuthorizedAgent',
+      args: [account],
+    }) as Promise<boolean>
+  }
+
+  /**
+   * isAuthorizedReviewer
+   * Checks whether an address is an authorized human reviewer / governor on the treasury.
+   */
+  async isAuthorizedReviewer(account: `0x${string}`): Promise<boolean> {
+    return this.publicClient.readContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'isAuthorizedReviewer',
+      args: [account],
+    }) as Promise<boolean>
+  }
+
+  /**
+   * getReleaseAuthorization
+   * Evaluates who can release and whether the release stops for human review under on-chain caps.
+   */
+  async getReleaseAuthorization(
+    caller: `0x${string}`,
+    amountUSDC: string | number,
+    releaseKey: `0x${string}`
+  ): Promise<ReleaseAuthorization> {
+    const amountRaw = parseUnits(amountUSDC.toString() as `${number}`, 6)
+    const [canReleaseDirectly, requiresHumanApproval, releaseRole] = (await this.publicClient.readContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'getReleaseAuthorization',
+      args: [caller, amountRaw, releaseKey],
+    })) as [boolean, boolean, string]
+
+    return { canReleaseDirectly, requiresHumanApproval, releaseRole }
+  }
+
+  /**
+   * setAgentReleaseCap
+   * Updates the on-chain agent release cap (governor or owner only).
+   */
+  async setAgentReleaseCap(newCapUSDC: string | number): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+    const capRaw = parseUnits(newCapUSDC.toString() as `${number}`, 6)
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'setAgentReleaseCap',
+      args: [capRaw],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * setAuthorizedAgent
+   * Authorizes or deauthorizes an autonomous agent script address.
+   */
+  async setAuthorizedAgent(agent: `0x${string}`, authorized: boolean): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'setAuthorizedAgent',
+      args: [agent, authorized],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
+
+  /**
+   * setAuthorizedHumanReviewer
+   * Authorizes or deauthorizes a human / multisig reviewer.
+   */
+  async setAuthorizedHumanReviewer(reviewer: `0x${string}`, authorized: boolean): Promise<string> {
+    this.requireWallet()
+    const address = await this.getAddress()
+    if (!address) throw new Error('No address found for connected wallet')
+
+    const gasParams = await this.getGasParams()
+    const txHash = await this.walletClient.writeContract({
+      address: this.config.treasuryAddress,
+      abi: TREASURY_ABI,
+      functionName: 'setAuthorizedHumanReviewer',
+      args: [reviewer, authorized],
+      account: this.getSigner(address),
+      ...gasParams,
+    })
+
+    await this.publicClient.waitForTransactionReceipt({ hash: txHash })
+    return txHash
+  }
   // ─── CREATOR ECONOMY & NANOPAYMENTS ─────────────────────
 
   async supportCreator(creatorWallet: `0x${string}`, amount: string | number): Promise<string> {

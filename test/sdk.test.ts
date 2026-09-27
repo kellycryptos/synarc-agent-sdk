@@ -121,4 +121,93 @@ describe('SynArc SDK tests', () => {
       agent.executeCCTPRebalance('1')
     ).rejects.toThrow('Wallet required')
   })
+
+  it('should expose Three-Way Match methods on SynArcTreasury and SynArcTreasuryAgent', () => {
+    const synarc = new SynArc(config)
+    const treasury = new SynArcTreasury(synarc)
+    const agent = new SynArcTreasuryAgent(synarc)
+
+    // SynArcTreasury methods
+    expect(treasury.simulateRelease).toBeDefined()
+    expect(treasury.releaseMilestone).toBeDefined()
+    expect(treasury.registerOrder).toBeDefined()
+    expect(treasury.requestPayeeChange).toBeDefined()
+    expect(treasury.confirmPayeeChange).toBeDefined()
+    expect(treasury.approveReleaseHuman).toBeDefined()
+
+    // SynArcTreasuryAgent methods
+    expect(agent.simulateRelease).toBeDefined()
+    expect(agent.releaseMilestone).toBeDefined()
+    expect(agent.requestPayeeChange).toBeDefined()
+    expect(agent.confirmPayeeChange).toBeDefined()
+  })
+
+  it('should throw "Wallet required" when calling Three-Way Match write methods in read-only mode', async () => {
+    const synarc = new SynArc(config)
+    const treasury = new SynArcTreasury(synarc)
+    const agent = new SynArcTreasuryAgent(synarc)
+
+    const releaseParams = {
+      proposalId: 1,
+      milestoneId: 1,
+      documentHash: '0x1234567890123456789012345678901234567890123456789012345678901234' as `0x${string}`,
+      invoiceHash: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd' as `0x${string}`,
+      recipient: '0x0000000000000000000000000000000000000001' as `0x${string}`,
+      amountUSDC: 25,
+      aiConfidenceScore: 95,
+    }
+
+    await expect(treasury.releaseMilestone(releaseParams)).rejects.toThrow('Wallet required')
+    await expect(agent.releaseMilestone(releaseParams)).rejects.toThrow('Wallet required')
+
+    await expect(
+      treasury.registerOrder({
+        proposalId: 1,
+        milestoneId: 1,
+        recipient: '0x0000000000000000000000000000000000000001',
+        amountUSDC: 25,
+        expectedDocumentHash: '0x1234567890123456789012345678901234567890123456789012345678901234',
+        deliverableURI: 'ipfs://deliverable',
+      })
+    ).rejects.toThrow('Wallet required')
+
+    await expect(
+      treasury.requestPayeeChange(1, '0x0000000000000000000000000000000000000002')
+    ).rejects.toThrow('Wallet required')
+    await expect(
+      agent.requestPayeeChange(1, '0x0000000000000000000000000000000000000002')
+    ).rejects.toThrow('Wallet required')
+
+    await expect(treasury.confirmPayeeChange(1)).rejects.toThrow('Wallet required')
+    await expect(agent.confirmPayeeChange(1)).rejects.toThrow('Wallet required')
+
+    await expect(
+      treasury.approveReleaseHuman('0x1234567890123456789012345678901234567890123456789012345678901234')
+    ).rejects.toThrow('Wallet required')
+
+    await expect(treasury.setAgentReleaseCap(100)).rejects.toThrow('Wallet required')
+    await expect(
+      treasury.setAuthorizedAgent('0x0000000000000000000000000000000000000001', true)
+    ).rejects.toThrow('Wallet required')
+    await expect(
+      treasury.setAuthorizedHumanReviewer('0x0000000000000000000000000000000000000002', true)
+    ).rejects.toThrow('Wallet required')
+  })
+
+  it('should expose Tameion release valve cap and role query methods', () => {
+    const synarc = new SynArc(config)
+    const treasury = new SynArcTreasury(synarc)
+    const agent = new SynArcTreasuryAgent(synarc)
+
+    expect(treasury.getAgentReleaseCap).toBeDefined()
+    expect(treasury.isAuthorizedAgent).toBeDefined()
+    expect(treasury.isAuthorizedReviewer).toBeDefined()
+    expect(treasury.getReleaseAuthorization).toBeDefined()
+    expect(treasury.setAgentReleaseCap).toBeDefined()
+    expect(treasury.setAuthorizedAgent).toBeDefined()
+    expect(treasury.setAuthorizedHumanReviewer).toBeDefined()
+
+    expect(agent.getAgentReleaseCap).toBeDefined()
+    expect(agent.getReleaseAuthorization).toBeDefined()
+  })
 })
