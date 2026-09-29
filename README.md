@@ -134,7 +134,7 @@ import { SynArc, SYNARC_TESTNET } from 'synarc-agent-sdk'
 const synarc = new SynArc({
   ...SYNARC_TESTNET,
   provider: window.ethereum,
-  creatorApiUrl: 'https://api.synarcdao.xyz', // optional: auto-registers campaign
+  creatorApiUrl: 'https://api.syndaopro.xyz', // optional: auto-registers campaign
 })
 
 const txHash = await synarc.createCreatorDAO({
@@ -650,7 +650,7 @@ const report = await agent.monitorTreasury()
 
 ## Links
 
-- **Live App:** [synarcdao.xyz](https://synarcdao.xyz)
+- **Live App:** [syndaopro.xyz](https://syndaopro.xyz)
 - **Twitter / X:** [@syndaopro](https://x.com/syndaopro)
 - **GitHub:** [kellycryptos/synarc-agent-sdk](https://github.com/kellycryptos/synarc-agent-sdk)
 - **Block Explorer:** [explorer.arc.io](https://explorer.arc.io) (Mainnet 5042) · [testnet.arcscan.app](https://testnet.arcscan.app) (Testnet)
