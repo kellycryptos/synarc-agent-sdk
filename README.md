@@ -37,7 +37,7 @@ Below is the official network configuration and deployed smart contract addresse
 | **RPC Endpoint** | `https://rpc.testnet.arc-node.thecanteenapp.com/v1/swrm_104d24688adcae992878acabfd41b2ed5800817b20d57aa9b17a64d225c0bf8f` | Primary RPC endpoint for client node calls |
 | **SynArcGovernor** | `0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e` | Governance proposal and voting controller |
 | **Governance Treasury (`treasuryGovernance`)** | `0xFE0F6bF45D363d34CD5fC1781594a7471736dC18` | Timelocked treasury for core DAO balances |
-| **Agent Operating Treasury (`treasuryAgent`)** | `0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63` | Fast-access agent operating reserves |
+| **Agent Operating Treasury (`treasuryAgent`)** | `0xE6bAC65d7f060B805B8dd6f1c4DBfa6571905f28` | Fast-access agent operating reserves |
 | **Crowdfund Factory / Template** | `0xd5374DFC4B01F60115A52Df027704062506b3030` | Deploys new campaign milestone escrows |
 | **SynArcToken (sARC)** | `0xBd0C6b83DaBF2c04Ab762C262ea0B036d2D1368e` | Primary governance voting weight token |
 | **EURC Token** | `0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a` | EURC stablecoin contract address |
@@ -50,7 +50,7 @@ Below is the official network configuration and deployed smart contract addresse
 Syn DAO uses two separate treasury contracts by design:
 
 - **Governance Treasury** (`0xFE0F6bF45D363d34CD5fC1781594a7471736dC18`) — The community-visible, timelocked treasury. All user-facing balance displays, governance proposals, and dashboard stats read from this contract. Withdrawals require a passing governance vote and a 24-hour timelock delay.
-- **Agent Operating Treasury** (`0x302D7cba3553e22E24C7A5C9aFee3942EBC6ea63`) — Used exclusively by the autonomous treasury agent for instant CCTP rebalances. Not surfaced to end users. Funded via governance-approved transfers from the main treasury.
+- **Agent Operating Treasury** (`0xE6bAC65d7f060B805B8dd6f1c4DBfa6571905f28`) — Used exclusively by the autonomous treasury agent for instant CCTP rebalances. Not surfaced to end users. Funded via governance-approved transfers from the main treasury.
 
 Import the correct address for your use case:
 ```typescript
