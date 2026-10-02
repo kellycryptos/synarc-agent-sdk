@@ -4,7 +4,7 @@ All notable changes to `synarc-agent-sdk` will be documented in this file.
 
 ## [0.5.7] — 2026-09-29
 
-- Added Tameion release valve integration (`tameionReleaseValve`, `claimTameionRelease`, `getTameionCap`, `checkReleaseAllowance`)
+- Added on-chain escrow release valve integration (`getAgentReleaseCap`, `getReleaseAuthorization`, `releaseMilestone`)
 - Added on-chain cap queries and role checks
 - Updated live web app and API URLs to `syndaopro.xyz`
 - Aligned Agent Operating Treasury address with deployed contract `0xE6bAC65d7f060B805B8dd6f1c4DBfa6571905f28`

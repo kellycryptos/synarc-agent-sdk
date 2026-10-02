@@ -194,7 +194,7 @@ describe('SynArc SDK tests', () => {
     ).rejects.toThrow('Wallet required')
   })
 
-  it('should expose Tameion release valve cap and role query methods', () => {
+  it('should expose escrow release valve cap and role query methods', () => {
     const synarc = new SynArc(config)
     const treasury = new SynArcTreasury(synarc)
     const agent = new SynArcTreasuryAgent(synarc)

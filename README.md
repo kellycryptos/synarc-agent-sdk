@@ -585,7 +585,7 @@ const synarc = new SynArc({
 | `executeTreasuryWithdrawal(id)` | `Promise<string>` | Execute a treasury withdrawal |
 | `cancelTreasuryWithdrawal(id)` | `Promise<string>` | Cancel a treasury withdrawal |
 
-### Tameion Escrow Release Valve Methods (Arc Mainnet 5042)
+### Escrow Release Valve Methods (Arc Mainnet)
 
 | Method | Returns | Description |
 |--------|---------|-------------|
@@ -645,7 +645,7 @@ const report = await agent.monitorTreasury()
 
 | Network | Chain ID | Status | RPC URL |
 |---------|----------|--------|---------|
-| Arc Mainnet | 5042 | 🚀 Shipping Window (5042) | `https://rpc.mainnet.arc.io` |
+| Arc Mainnet | 5042 | 🚀 Live | `https://rpc.mainnet.arc.io` |
 | Arc Testnet | 5042002 | ✅ Live | `https://rpc.testnet.arc.network` |
 
 ## Links
@@ -653,7 +653,7 @@ const report = await agent.monitorTreasury()
 - **Live App:** [syndaopro.xyz](https://syndaopro.xyz)
 - **Twitter / X:** [@syndaopro](https://x.com/syndaopro)
 - **GitHub:** [kellycryptos/synarc-agent-sdk](https://github.com/kellycryptos/synarc-agent-sdk)
-- **Block Explorer:** [explorer.arc.io](https://explorer.arc.io) (Mainnet 5042) · [testnet.arcscan.app](https://testnet.arcscan.app) (Testnet)
+- **Block Explorer:** [explorer.arc.io](https://explorer.arc.io) (Mainnet) · [testnet.arcscan.app](https://testnet.arcscan.app) (Testnet)
 - **npm:** [synarc-agent-sdk](https://www.npmjs.com/package/synarc-agent-sdk)
 
 ## License
