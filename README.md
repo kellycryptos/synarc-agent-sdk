@@ -13,6 +13,8 @@ Most community treasury tools require manual intervention, governance bottleneck
 - **Creator DAO Deployment** — Deploy `SynArcCrowdfund` escrow contracts directly from your wallet. Funds are milestone-gated and only released to the creator when the community approves.
 - **USDC Nanopayments** — Direct micro-payments to creator wallets on Arc Network; any amount from `$0.01` upward.
 - **Automated Treasury Guard** — Autonomous agent supporting Auto Rebalancing (CCTP), Auto Payments (scheduled with 24h timelock), and Risk Monitoring with emergency pause.
+- **Arc Earn & DeFi Vaults** — Autonomous deposit and yield operations in Morpho vaults on Arc via `@circle-fin/earn-kit`.
+- **Adversarial Escrow & Release Valve** — Three-Way Match disbursement verification with on-chain agent release caps and human reviewer escalation.
 - **Bidirectional CCTP Bridge** — Native Circle burn-and-mint; Arc Testnet ↔ Ethereum Sepolia without wrapper tokens.
 - **Wallet-Agnostic** — MetaMask, Privy, Circle Programmable Wallets, Coinbase, WalletConnect, or raw private keys.
 - **Read-Only Mode** — Query balances, campaigns, and treasury stats without connecting a wallet.
@@ -34,7 +36,7 @@ Below is the official network configuration and deployed smart contract addresse
 | Configuration / Contract | Value / Address | Description |
 |:---|:---|:---|
 | **Chain ID** | `5042002` | Arc Testnet Chain Identifier |
-| **RPC Endpoint** | `https://rpc.testnet.arc-node.thecanteenapp.com/v1/swrm_104d24688adcae992878acabfd41b2ed5800817b20d57aa9b17a64d225c0bf8f` | Primary RPC endpoint for client node calls |
+| **RPC Endpoint** | `https://rpc.testnet.arc.network` | Primary RPC endpoint for client node calls |
 | **SynArcGovernor** | `0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e` | Governance proposal and voting controller |
 | **Governance Treasury (`treasuryGovernance`)** | `0xFE0F6bF45D363d34CD5fC1781594a7471736dC18` | Timelocked treasury for core DAO balances |
 | **Agent Operating Treasury (`treasuryAgent`)** | `0xE6bAC65d7f060B805B8dd6f1c4DBfa6571905f28` | Fast-access agent operating reserves |
@@ -43,7 +45,8 @@ Below is the official network configuration and deployed smart contract addresse
 | **EURC Token** | `0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a` | EURC stablecoin contract address |
 | **USDC (Gas Token)** | `0x3600000000000000000000000000000000000000` | Native USDC stablecoin for fee payment |
 | **Treasury Agent Contract** | `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` | On-chain autonomous agent rules executor |
-| **CCTP Token Messenger** | `0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e` | Circle CCTP Token Messenger address |
+| **CCTP Token Messenger** | `0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA` | Circle CCTP Token Messenger address |
+| **CCTP Message Transmitter** | `0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275` | Circle CCTP Message Transmitter address |
 
 ### Two-Treasury Architecture
 
@@ -294,7 +297,7 @@ import { SynArc, SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
 const synarc = new SynArc({
   ...SYNARC_TESTNET,
   agentAddress: '0x88BdF819466C1802ce6C780a9fbdF3A314cab07D',
-  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e',
+  tokenMessengerAddress: '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA',
   rebalanceThresholdUSDC: 100, // Recommend rebalance when USDC > 100
   privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
 })
@@ -407,7 +410,7 @@ import { SynArc, SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
 const synarc = new SynArc({
   ...SYNARC_TESTNET,
   agentAddress: '0x88BdF819466C1802ce6C780a9fbdF3A314cab07D',
-  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e',
+  tokenMessengerAddress: '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA',
   rebalanceThresholdUSDC: 100,
   privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
 })
@@ -458,6 +461,62 @@ async function runAgentCycle() {
 // Run every 30 seconds
 setInterval(runAgentCycle, 30_000)
 runAgentCycle()
+```
+
+---
+
+## Arc Earn & DeFi Vaults (SynArcEarn)
+
+The `SynArcEarn` module enables autonomous treasury agents and DAOs to deploy capital into yield-bearing Morpho vaults on Arc Mainnet and Arc Testnet using `@circle-fin/earn-kit`.
+
+### Setup
+
+```typescript
+import { SynArcEarn, SYNARC_TESTNET } from 'synarc-agent-sdk'
+
+const earn = new SynArcEarn({
+  ...SYNARC_TESTNET,
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+})
+```
+
+### 1. Explore Available Vaults
+```typescript
+const vaults = await earn.exploreVaults({ sortBy: 'apy' })
+vaults.forEach(v => {
+  console.log(`${v.name}: ${v.apy}% APY | TVL: $${v.tvl}`)
+})
+```
+
+### 2. Deposit into Vault
+```typescript
+// Preview deposit quote
+const quote = await earn.getDepositQuote({
+  vaultAddress: '0xVaultAddress',
+  amount: '100', // 100 USDC
+})
+console.log('Estimated shares:', quote.shares)
+
+// Execute deposit
+const txHash = await earn.deposit({
+  vaultAddress: '0xVaultAddress',
+  amount: '100',
+})
+console.log('Deposited! Tx:', txHash)
+```
+
+### 3. Check Position & Withdraw
+```typescript
+// Query current position
+const position = await earn.getPosition({ vaultAddress: '0xVaultAddress' })
+console.log(`Position balance: ${position.balance} USDC`)
+
+// Redeem vault shares back to USDC
+const withdrawTx = await earn.withdraw({
+  vaultAddress: '0xVaultAddress',
+  amount: '50',
+})
+console.log('Withdrawn! Tx:', withdrawTx)
 ```
 
 ---
@@ -620,9 +679,10 @@ const synarc = new SynArc({
 | `SynArcGovernance` | Proposals, voting, delegation |
 | `SynArcTreasury` | Treasury balance, deposits, pause, timelocked withdrawals |
 | `SynArcTreasuryAgent` | Rebalancing, CCTP bridging, auto payments, risk monitoring |
+| `SynArcEarn` | Arc Earn & Morpho Vault operations (explore vaults, deposit, redeem) |
 
 ```typescript
-import { SynArcCreator, SynArcTreasuryAgent, SYNARC_TESTNET } from 'synarc-agent-sdk'
+import { SynArcCreator, SynArcTreasuryAgent, SynArcEarn, SYNARC_TESTNET } from 'synarc-agent-sdk'
 
 // Creator facade
 const creator = new SynArcCreator({ ...SYNARC_TESTNET, provider: window.ethereum })
@@ -632,11 +692,18 @@ const txHash = await creator.createCreatorDAO({ name: 'My Project', description:
 const agent = new SynArcTreasuryAgent({
   ...SYNARC_TESTNET,
   agentAddress: '0x88BdF819466C1802ce6C780a9fbdF3A314cab07D',
-  tokenMessengerAddress: '0xd0C3da4E20F0D24dB1cE8f1fF36814Ea8F60309e',
+  tokenMessengerAddress: '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA',
   privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
 })
 
 const report = await agent.monitorTreasury()
+
+// Earn facade
+const earn = new SynArcEarn({
+  ...SYNARC_TESTNET,
+  privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+})
+const vaults = await earn.exploreVaults()
 ```
 
 ---

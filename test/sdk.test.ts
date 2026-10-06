@@ -5,6 +5,7 @@ import {
   SynArcTreasury,
   SynArcCreator,
   SynArcTreasuryAgent,
+  SynArcEarn,
   SYNARC_TESTNET,
   ARC_TESTNET,
 } from '../src/index'
@@ -210,4 +211,19 @@ describe('SynArc SDK tests', () => {
     expect(agent.getAgentReleaseCap).toBeDefined()
     expect(agent.getReleaseAuthorization).toBeDefined()
   })
+
+  it('should instantiate SynArcEarn and expose Arc Earn vault operations', () => {
+    const earnTestnet = new SynArcEarn(config)
+    expect(earnTestnet.getChain()).toBe('Arc_Testnet')
+    expect(earnTestnet.exploreVaults).toBeDefined()
+    expect(earnTestnet.getDepositQuote).toBeDefined()
+    expect(earnTestnet.deposit).toBeDefined()
+    expect(earnTestnet.getPosition).toBeDefined()
+    expect(earnTestnet.getWithdrawalQuote).toBeDefined()
+    expect(earnTestnet.withdraw).toBeDefined()
+
+    const earnMainnet = new SynArcEarn({ ...config, network: 'mainnet' })
+    expect(earnMainnet.getChain()).toBe('Arc')
+  })
 })
+

@@ -2,6 +2,13 @@
 
 All notable changes to `synarc-agent-sdk` will be documented in this file.
 
+## [0.5.8] — 2026-10-06
+
+- Added `SynArcEarn` module for autonomous Arc App Kit / Morpho vault operations (`exploreVaults`, `deposit`, `getPosition`, `withdraw`)
+- Updated canonical Circle CCTP Token Messenger address (`0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA`) and Message Transmitter (`0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275`)
+- Updated canonical Arc Testnet RPC endpoints to `https://rpc.testnet.arc.network`
+- Added unit test coverage for `SynArcEarn` and verified live testnet integration
+
 ## [0.5.7] — 2026-09-29
 
 - Added on-chain escrow release valve integration (`getAgentReleaseCap`, `getReleaseAuthorization`, `releaseMilestone`)
