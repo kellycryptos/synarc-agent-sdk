@@ -2,17 +2,18 @@
 
 > Package name unchanged for backwards compatibility. Product is now **Syn DAO**, built on Arc.
 
-> **The official SDK for Syn DAO** — build Creator DAOs, autonomous treasury agents, and payment-safety rails on the Arc Network.
+> **The official SDK for Syn DAO** — Enabling businesses, creators, and DAOs to launch transparent organizations, receive USDC funding, and manage treasuries autonomously on Arc.
 
-Most community treasury tools require manual intervention, governance bottlenecks, and fragile bridging mechanics. Syn DAO fixes that by combining **milestone-gated Creator DAOs**, an **Autonomous Treasury Release Valve with Three-Way Match**, and **Circle CCTP** into one composable SDK.
+Syn DAO is a governance and treasury platform that enables businesses, creators, and DAOs to launch transparent organizations, receive USDC funding, and manage treasuries autonomously on Arc. Most corporate and community treasury tools require manual intervention, governance bottlenecks, and fragile bridging mechanics. Syn DAO fixes that by combining **milestone-gated business & creator escrows**, an **Autonomous Treasury Release Valve with Three-Way Match**, and **Circle CCTP** into one composable SDK.
 
 ---
 
 ## Features
 
-- **Three-Way Match Release Valve** — Contract-enforced capital release requiring agreement between Governor proposal, IPFS deliverable CID, and payee address, backed by a 48h payee cooldown.
+- **Business & Organization Treasuries** — Programmable governance and multi-signature safeguards for corporate treasuries, vendor payments, and operational reserves.
+- **Three-Way Match Release Valve** — Contract-enforced capital release requiring agreement between Governor proposal/order, IPFS deliverable CID, and payee address, backed by a 48h payee cooldown.
 - **Autonomous Agent Release ($\le 50$ USDC)** — Autonomous agents trigger micro-payouts under policy with on-chain idempotency (zero replay attacks); $> 50$ USDC halts for human review.
-- **Creator DAO Deployment** — Deploy `SynArcCrowdfund` escrow contracts directly from your wallet. Funds are milestone-gated and released only when the community approves.
+- **Creator DAO & Milestone Escrows** — Deploy `SynArcCrowdfund` escrow contracts directly from your wallet. Funds are milestone-gated and released only when deliverables are verified.
 - **USDC Nanopayments** — Direct micro-payments to recipient wallets on Arc Network; any amount from `$0.01` upward.
 - **Automated Treasury Guard** — Autonomous agent supporting Auto Rebalancing (CCTP), Auto Payments (scheduled with 24h timelock), and Risk Monitoring with emergency pause.
 - **Arc Earn & DeFi Vaults** — Autonomous deposit and yield operations in Morpho vaults on Arc via `@circle-fin/earn-kit`.

@@ -1,7 +1,7 @@
 {
   "name": "synarc-agent-sdk",
-  "version": "0.5.9",
-  "description": "Agent SDK for Syn DAO — Built on Arc",
+  "version": "0.5.10",
+  "description": "Official Agent SDK for Syn DAO — Governance and treasury platform enabling businesses, creators, and DAOs to launch transparent organizations, receive USDC funding, and manage treasuries autonomously on Arc.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -16,6 +16,10 @@
   "keywords": [
     "synarc",
     "dao",
+    "business",
+    "businesses",
+    "organizations",
+    "treasury-management",
     "creator-dao",
     "governance",
     "arc",
@@ -25,21 +29,19 @@
     "treasury-agent",
     "nanopayments",
     "micropayments",
-    "fan-support"
+    "three-way-match",
+    "release-valve"
   ],
   "author": "kellycryptos",
   "license": "MIT",
   "peerDependencies": {
-    "viem": "^0.2.1"
+    "viem": ">=2.0.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.1",
     "tsup": "^6.5.0",
     "typescript": "^5.0.0",
-    "viem": "^0.2.1",
+    "viem": "^2.49.3",
     "vitest": "^4.1.8"
-  },
-  "dependencies": {
-    "dotenv": "^17.4.2"
   }
 }

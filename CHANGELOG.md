@@ -2,6 +2,14 @@
  
 All notable changes to `synarc-agent-sdk` will be documented in this file.
 
+## [0.5.10] — 2026-10-09
+
+- **Expanded Scope for Businesses & Organizations**: Aligned SDK positioning and documentation with Syn DAO's expanded mission: enabling businesses, creators, and DAOs to launch transparent organizations, receive USDC funding, and manage treasuries autonomously on Arc.
+- **Dependency & Supply-Chain Hardening**:
+  - Removed unused runtime dependencies (eliminating transitive supply-chain CVE attack vectors).
+  - Modernized `peerDependencies` to `viem >=2.0.0` (superseding legacy viem `^0.2.1` peer constraint).
+- **Keyword & Metadata Enrichment**: Added keywords for business treasuries, organizations, and release valve mechanisms.
+
 ## [0.5.9] — 2026-10-09
 
 - **Arc Mainnet Production Contracts**: Replaced placeholder constants in `SYNARC_MAINNET` with live deployed production addresses on Arc Mainnet (`chainId: 5042`):
