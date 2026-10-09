@@ -2,21 +2,22 @@
 
 > Package name unchanged for backwards compatibility. Product is now **Syn DAO**, built on Arc.
 
-> **The official SDK for Syn DAO** — build Creator DAOs, autonomous treasury agents, and cross-chain payment flows on the Arc Network.
+> **The official SDK for Syn DAO** — build Creator DAOs, autonomous treasury agents, and payment-safety rails on the Arc Network.
 
-Most community treasury tools require manual intervention, governance bottlenecks, and fragile bridging mechanics. Syn DAO fixes that by combining **milestone-gated Creator DAOs**, an **Automated Treasury Guard**, and **Circle CCTP** into one composable SDK.
+Most community treasury tools require manual intervention, governance bottlenecks, and fragile bridging mechanics. Syn DAO fixes that by combining **milestone-gated Creator DAOs**, an **Autonomous Treasury Release Valve with Three-Way Match**, and **Circle CCTP** into one composable SDK.
 
 ---
 
 ## Features
 
-- **Creator DAO Deployment** — Deploy `SynArcCrowdfund` escrow contracts directly from your wallet. Funds are milestone-gated and only released to the creator when the community approves.
-- **USDC Nanopayments** — Direct micro-payments to creator wallets on Arc Network; any amount from `$0.01` upward.
+- **Three-Way Match Release Valve** — Contract-enforced capital release requiring agreement between Governor proposal, IPFS deliverable CID, and payee address, backed by a 48h payee cooldown.
+- **Autonomous Agent Release ($\le 50$ USDC)** — Autonomous agents trigger micro-payouts under policy with on-chain idempotency (zero replay attacks); $> 50$ USDC halts for human review.
+- **Creator DAO Deployment** — Deploy `SynArcCrowdfund` escrow contracts directly from your wallet. Funds are milestone-gated and released only when the community approves.
+- **USDC Nanopayments** — Direct micro-payments to recipient wallets on Arc Network; any amount from `$0.01` upward.
 - **Automated Treasury Guard** — Autonomous agent supporting Auto Rebalancing (CCTP), Auto Payments (scheduled with 24h timelock), and Risk Monitoring with emergency pause.
 - **Arc Earn & DeFi Vaults** — Autonomous deposit and yield operations in Morpho vaults on Arc via `@circle-fin/earn-kit`.
-- **Adversarial Escrow & Release Valve** — Three-Way Match disbursement verification with on-chain agent release caps and human reviewer escalation.
-- **Bidirectional CCTP Bridge** — Native Circle burn-and-mint; Arc Testnet ↔ Ethereum Sepolia without wrapper tokens.
-- **Wallet-Agnostic** — MetaMask, Privy, Circle Programmable Wallets, Coinbase, WalletConnect, or raw private keys.
+- **Bidirectional CCTP Bridge** — Native Circle burn-and-mint; Arc ↔ Ethereum, Base, and Avalanche without wrapper tokens.
+- **Wallet-Agnostic** — MetaMask, Privy, Circle Programmable Wallets, Coinbase, RainbowKit, WalletConnect, or raw private keys.
 - **Read-Only Mode** — Query balances, campaigns, and treasury stats without connecting a wallet.
 
 ---
@@ -31,19 +32,30 @@ npm install synarc-agent-sdk
 
 ## Deployed Contracts & Network Reference
 
-Below is the official network configuration and deployed smart contract addresses for Syn DAO on the Arc Testnet (`chainId: 5042002`).
+### Arc Mainnet — Production (`chainId: 5042`)
+
+| Configuration / Contract | Value / Address | Description |
+|:---|:---|:---|
+| **Chain ID** | `5042` | Arc Mainnet Identifier |
+| **RPC Endpoint** | `https://rpc.mainnet.arc.io` | Official Arc Mainnet RPC Endpoint |
+| **SynArcTreasury (Release Valve)** | `0x8205e9782Fe54fD2aaD895b436B695db169F3d7B` | Three-Way Match Release Valve, Payee Cooldown & Idempotency Guard |
+| **SynArcGovernor** | `0x4f76Fc6a76b16F58826739aC8EeCf7067FDE0025` | Document-Anchored Governance Engine (48h timelock) |
+| **SynArcToken (sARC)** | `0x8f4b429794ABa4607d177b100Cc5e481D22d0ad4` | Primary Governance Token |
+| **Authorized Operator Agent** | `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` | Autonomous AI Agent executing under-cap releases & rebalances |
+| **Agent Release Cap** | `50.00 USDC` (`50_000_000 micro-USDC`) | Enforced on-chain: releases $\le 50$ autonomous; $> 50$ require human review |
+| **Canonical USDC** | `0x3600000000000000000000000000000000000000` | Native Circle USDC (gas token) |
+
+### Arc Testnet — Developer Sandbox (`chainId: 5042002`)
 
 | Configuration / Contract | Value / Address | Description |
 |:---|:---|:---|
 | **Chain ID** | `5042002` | Arc Testnet Chain Identifier |
-| **RPC Endpoint** | `https://rpc.testnet.arc.network` | Primary RPC endpoint for client node calls |
+| **RPC Endpoint** | `https://rpc.testnet.arc.network` | Primary RPC endpoint for testnet calls |
 | **SynArcGovernor** | `0x83Fa2adf3f66e4951D7E9F2576a79e9d644aE25e` | Governance proposal and voting controller |
 | **Governance Treasury (`treasuryGovernance`)** | `0xFE0F6bF45D363d34CD5fC1781594a7471736dC18` | Timelocked treasury for core DAO balances |
 | **Agent Operating Treasury (`treasuryAgent`)** | `0xE6bAC65d7f060B805B8dd6f1c4DBfa6571905f28` | Fast-access agent operating reserves |
 | **Crowdfund Factory / Template** | `0xd5374DFC4B01F60115A52Df027704062506b3030` | Deploys new campaign milestone escrows |
 | **SynArcToken (sARC)** | `0xBd0C6b83DaBF2c04Ab762C262ea0B036d2D1368e` | Primary governance voting weight token |
-| **EURC Token** | `0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a` | EURC stablecoin contract address |
-| **USDC (Gas Token)** | `0x3600000000000000000000000000000000000000` | Native USDC stablecoin for fee payment |
 | **Treasury Agent Contract** | `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` | On-chain autonomous agent rules executor |
 | **CCTP Token Messenger** | `0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA` | Circle CCTP Token Messenger address |
 | **CCTP Message Transmitter** | `0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275` | Circle CCTP Message Transmitter address |
