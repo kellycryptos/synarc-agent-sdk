@@ -1,6 +1,24 @@
 # Changelog
-
+ 
 All notable changes to `synarc-agent-sdk` will be documented in this file.
+
+## [0.5.9] — 2026-10-09
+
+- **Arc Mainnet Production Contracts**: Replaced placeholder constants in `SYNARC_MAINNET` with live deployed production addresses on Arc Mainnet (`chainId: 5042`):
+  - `treasuryGovernance` / `treasury`: `0x8205e9782Fe54fD2aaD895b436B695db169F3d7B` (Three-Way Match Release Valve, 48h payee cooldown, idempotency guard)
+  - `governor`: `0x4f76Fc6a76b16F58826739aC8EeCf7067FDE0025`
+  - `token`: `0x8f4b429794ABa4607d177b100Cc5e481D22d0ad4` (sARC)
+  - `usdc`: `0x3600000000000000000000000000000000000000` (Native Circle USDC gas token)
+  - `eurc`: `0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1` (Native Circle EURC)
+  - `agent` / `treasuryAgent`: `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` (Authorized Operator Agent)
+  - `tokenMessenger`: `0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d`
+  - `messageTransmitter`: `0x81D40F21F12A8F0E3252Bccb954D722d4c464B64`
+  - `crowdfund`: `0xd5374DFC4B01F60115A52Df027704062506b3030`
+  - `deployerReviewer`: `0xE819090D7810D89f2E86e167d0b58425dEd745D8`
+- **RPC & Explorer Alignment**: Configured Arc Mainnet RPCs to `https://rpc.mainnet.arc.io` with fallback `https://rpc.arc.network` and Arc Explorer `https://explorer.arc.io`.
+- **Escrow Release Policy**: Exported `agentReleaseCapUSDC: 50` and `agentReleaseCapMicro: 50000000n` constants.
+- **Convenience Address Exports**: Added `MAINNET_TREASURY_ADDRESS`, `MAINNET_GOVERNOR_ADDRESS`, `MAINNET_TOKEN_ADDRESS`, and `MAINNET_AGENT_ADDRESS`.
+- **Test Coverage**: Added tests for `SYNARC_MAINNET` contract constants and default mainnet network client resolution.
 
 ## [0.5.8] — 2026-10-06
 

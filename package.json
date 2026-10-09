@@ -1,6 +1,6 @@
 {
   "name": "synarc-agent-sdk",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "Agent SDK for Syn DAO — Built on Arc",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

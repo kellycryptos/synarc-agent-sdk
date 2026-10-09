@@ -1,7 +1,7 @@
 export interface SynArcConfig {
   /** Target network: 'testnet' (default) or 'mainnet' */
   network?: 'testnet' | 'mainnet'
-  /** Target chain ID: 5042002 (Arc Testnet) or 5042 (Arc Mainnet placeholder) */
+  /** Target chain ID: 5042002 (Arc Testnet) or 5042 (Arc Mainnet) */
   chainId?: number
 
   governorAddress?: `0x${string}`

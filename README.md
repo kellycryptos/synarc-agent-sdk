@@ -44,6 +44,11 @@ npm install synarc-agent-sdk
 | **Authorized Operator Agent** | `0x88BdF819466C1802ce6C780a9fbdF3A314cab07D` | Autonomous AI Agent executing under-cap releases & rebalances |
 | **Agent Release Cap** | `50.00 USDC` (`50_000_000 micro-USDC`) | Enforced on-chain: releases $\le 50$ autonomous; $> 50$ require human review |
 | **Canonical USDC** | `0x3600000000000000000000000000000000000000` | Native Circle USDC (gas token) |
+| **Canonical EURC** | `0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1` | Native Circle EURC on Arc Mainnet |
+| **CCTP Token Messenger** | `0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d` | Production Circle CCTP Token Messenger |
+| **CCTP Message Transmitter** | `0x81D40F21F12A8F0E3252Bccb954D722d4c464B64` | Production Circle CCTP Message Transmitter |
+| **Crowdfund Escrow Template** | `0xd5374DFC4B01F60115A52Df027704062506b3030` | Deploys new campaign milestone escrows |
+| **Authorized Human Reviewer** | `0xE819090D7810D89f2E86e167d0b58425dEd745D8` | Deployer EOA registered on-chain for emergency signoff |
 
 ### Arc Testnet — Developer Sandbox (`chainId: 5042002`)
 

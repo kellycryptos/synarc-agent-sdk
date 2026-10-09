@@ -7,7 +7,12 @@ import {
   SynArcTreasuryAgent,
   SynArcEarn,
   SYNARC_TESTNET,
+  SYNARC_MAINNET,
   ARC_TESTNET,
+  ARC_MAINNET,
+  MAINNET_TREASURY_ADDRESS,
+  MAINNET_GOVERNOR_ADDRESS,
+  MAINNET_TOKEN_ADDRESS,
 } from '../src/index'
 
 describe('SynArc SDK tests', () => {
@@ -26,6 +31,25 @@ describe('SynArc SDK tests', () => {
     expect(SYNARC_TESTNET.token).toBe('0xBd0C6b83DaBF2c04Ab762C262ea0B036d2D1368e')
     expect(SYNARC_TESTNET.eurc).toBe('0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a')
     expect(SYNARC_TESTNET.usdc).toBe('0x3600000000000000000000000000000000000000')
+
+    // Arc Mainnet Production Contracts
+    expect(ARC_MAINNET.id).toBe(5042)
+    expect(SYNARC_MAINNET.governor).toBe('0x4f76Fc6a76b16F58826739aC8EeCf7067FDE0025')
+    expect(SYNARC_MAINNET.treasury).toBe('0x8205e9782Fe54fD2aaD895b436B695db169F3d7B')
+    expect(SYNARC_MAINNET.token).toBe('0x8f4b429794ABa4607d177b100Cc5e481D22d0ad4')
+    expect(SYNARC_MAINNET.usdc).toBe('0x3600000000000000000000000000000000000000')
+    expect(SYNARC_MAINNET.eurc).toBe('0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1')
+    expect(SYNARC_MAINNET.agentReleaseCapUSDC).toBe(50)
+    expect(SYNARC_MAINNET.agentReleaseCapMicro).toBe(50000000n)
+    expect(MAINNET_TREASURY_ADDRESS).toBe(SYNARC_MAINNET.treasury)
+    expect(MAINNET_GOVERNOR_ADDRESS).toBe(SYNARC_MAINNET.governor)
+    expect(MAINNET_TOKEN_ADDRESS).toBe(SYNARC_MAINNET.token)
+  })
+
+  it('should instantiate SynArc on Arc Mainnet with production contracts by default', () => {
+    const mainnetSdk = new SynArc({ network: 'mainnet' })
+    expect(mainnetSdk.isReadOnly()).toBe(true)
+    expect(mainnetSdk.publicClient.chain.id).toBe(5042)
   })
 
   it('should instantiate SynArc in read-only mode by default', () => {

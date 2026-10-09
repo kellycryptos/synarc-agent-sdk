@@ -59,8 +59,8 @@ export class SynArc {
       agentAddress: config.agentAddress || (defaultContracts.agent as `0x${string}`),
     }
 
-    const defaultRpc = isMainnet ? 'https://rpc.arc.network' : 'https://rpc.testnet.arc.network'
-    const fallbackRpc = isMainnet ? 'https://arc-mainnet.drpc.org' : 'https://arc-testnet.drpc.org'
+    const defaultRpc = isMainnet ? 'https://rpc.mainnet.arc.io' : 'https://rpc.testnet.arc.network'
+    const fallbackRpc = isMainnet ? 'https://rpc.arc.network' : 'https://rpc.testnet.arc.io'
 
     // Build transport with fallbacks
     const transport = fallback([
