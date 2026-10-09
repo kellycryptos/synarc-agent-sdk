@@ -1,6 +1,6 @@
 {
   "name": "synarc-agent-sdk",
-  "version": "0.5.10",
+  "version": "0.5.11",
   "description": "Official Agent SDK for Syn DAO — Governance and treasury platform enabling businesses, creators, and DAOs to launch transparent organizations, receive USDC funding, and manage treasuries autonomously on Arc.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

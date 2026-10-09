@@ -2,6 +2,13 @@
  
 All notable changes to `synarc-agent-sdk` will be documented in this file.
 
+## [0.5.11] — 2026-10-09
+
+- **Build Pipeline & Transitive CVE Elimination**:
+  - Upgraded build pipeline to `tsup v8.5.1` (eliminating 114 obsolete transitive packages and all associated sub-dependency CVEs).
+  - Modernized generated bundle definitions to include dual `.d.ts` and `.d.mts` exports.
+  - Zero runtime dependencies in published artifact.
+
 ## [0.5.10] — 2026-10-09
 
 - **Expanded Scope for Businesses & Organizations**: Aligned SDK positioning and documentation with Syn DAO's expanded mission: enabling businesses, creators, and DAOs to launch transparent organizations, receive USDC funding, and manage treasuries autonomously on Arc.
