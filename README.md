@@ -737,6 +737,7 @@ const vaults = await earn.exploreVaults()
 
 - **Live App:** [syndaopro.xyz](https://syndaopro.xyz)
 - **Twitter / X:** [@syndaopro](https://x.com/syndaopro)
+- **Email:** [hello@syndaopro.xyz](mailto:hello@syndaopro.xyz)
 - **GitHub:** [kellycryptos/synarc-agent-sdk](https://github.com/kellycryptos/synarc-agent-sdk)
 - **Block Explorer:** [explorer.arc.io](https://explorer.arc.io) (Mainnet) · [testnet.arcscan.app](https://testnet.arcscan.app) (Testnet)
 - **npm:** [synarc-agent-sdk](https://www.npmjs.com/package/synarc-agent-sdk)
