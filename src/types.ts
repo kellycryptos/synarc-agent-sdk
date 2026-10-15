@@ -169,8 +169,10 @@ export interface TreasuryBalance {
 // ─── TREASURY REBALANCER AGENT ───────────────────────────
 
 export interface RebalanceProposalParams {
-  /** The amount of USDC to rebalance */
+  /** The amount of tokens to rebalance */
   amountUSDC: string | number
+  /** Token symbol to rebalance: 'USDC' (default) or 'EURC' */
+  token?: 'USDC' | 'EURC'
   /** The source chain name (e.g. 'Arc') */
   sourceChain?: string
   /** The target chain name (e.g. 'Ethereum') */

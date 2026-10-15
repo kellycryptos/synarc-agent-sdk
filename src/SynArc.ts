@@ -1172,14 +1172,16 @@ export class SynArc {
     const address = await this.getAddress()
     if (!address) throw new Error('No address found for connected wallet')
 
+    const tokenSymbol = params.token || 'USDC'
     const amountRaw = parseUnits(params.amountUSDC.toString() as `${number}`, 6)
     const agentAddress = this.config.agentAddress || this.privateKeyAccount?.address || address
 
-    const title = params.title || `Proposed by Treasury Agent — Bridge ${params.amountUSDC} USDC to ${params.targetChain}`
+    const title = params.title || `Proposed by Treasury Agent — Bridge ${params.amountUSDC} ${tokenSymbol} to ${params.targetChain}`
     const description = 
       `Proposed by Treasury Agent\n\n` +
       `AUTONOMOUS AGENT PROPOSAL\n` +
-      `Amount: ${params.amountUSDC} USDC\n` +
+      `Amount: ${params.amountUSDC} ${tokenSymbol}\n` +
+      `Asset: ${tokenSymbol}\n` +
       `Target Chain: ${params.targetChain}\n` +
       `Target Domain: ${params.targetDomain}\n` +
       `Recipient: ${params.mintRecipient}\n` +
@@ -1194,7 +1196,7 @@ export class SynArc {
         description,
         'TREASURY_REBALANCE',
         300n, // votingDuration: 300 seconds (5 min) matching main site
-        amountRaw, // treasuryImpactValue (USDC withdrawal amount)
+        amountRaw, // treasuryImpactValue (withdrawal amount)
         agentAddress // executionTarget (agent contract/smart account address to receive funds)
       ],
       account: this.getSigner(address),
@@ -1206,9 +1208,9 @@ export class SynArc {
 
   /**
    * executeCCTPRebalance
-   * Executes the Circle CCTP cross-chain transfer of USDC.
+   * Executes the Circle CCTP cross-chain transfer of USDC or EURC.
    * Must be called after the corresponding governance rebalance proposal passes and executes,
-   * which transfers the treasury USDC into the agent's executor wallet.
+   * which transfers the treasury tokens into the agent's executor wallet.
    */
   async executeCCTPRebalance(proposalId: string): Promise<string> {
     this.requireWallet()
@@ -1228,7 +1230,9 @@ export class SynArc {
     }
 
     const desc: string = proposal.description || ''
-    const amountMatch = desc.match(/Amount:\s*([\d.]+)\s*USDC/)
+    const amountMatch = desc.match(/Amount:\s*([\d.]+)\s*(USDC|EURC)?/)
+    const assetMatch = desc.match(/Asset:\s*(USDC|EURC)/)
+    const tokenSymbol = assetMatch ? assetMatch[1] : (amountMatch && amountMatch[2] ? amountMatch[2] : 'USDC')
     const domainMatch = desc.match(/Target Domain:\s*(\d+)/)
     const recipientMatch = desc.match(/Recipient:\s*(0x[a-fA-F0-9]{40})/)
 
@@ -1236,21 +1240,24 @@ export class SynArc {
       throw new Error('Failed to parse rebalance details from proposal description.')
     }
 
-    const amountUSDC = amountMatch[1]
+    const amountToken = amountMatch[1]
     const targetDomain = parseInt(domainMatch[1], 10)
     const mintRecipient = recipientMatch[1] as `0x${string}`
 
-    const amountRaw = parseUnits(amountUSDC as `${number}`, 6)
-    const usdcAddress = this.config.usdcAddress || '0x3600000000000000000000000000000000000000'
-    const tokenMessengerAddress = this.config.tokenMessengerAddress
+    const amountRaw = parseUnits(amountToken as `${number}`, 6)
+    const isMainnet = this.config.network === 'mainnet' || this.config.chainId === 5042
+    const tokenAddress = tokenSymbol === 'EURC'
+      ? (this.config.eurcAddress || (isMainnet ? '0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1' : '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a'))
+      : (this.config.usdcAddress || '0x3600000000000000000000000000000000000000')
+    const tokenMessengerAddress = this.config.tokenMessengerAddress || (isMainnet ? '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d' : '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA')
 
     if (!tokenMessengerAddress) {
       throw new Error('tokenMessengerAddress must be configured in SynArcConfig to execute CCTP')
     }
 
-    // 1. Approve USDC transfer to CCTP TokenMessenger
+    // 1. Approve token transfer to CCTP TokenMessenger
     const approveTx = await this.walletClient.writeContract({
-      address: usdcAddress,
+      address: tokenAddress,
       abi: ERC20_ABI,
       functionName: 'approve',
       args: [tokenMessengerAddress, amountRaw],
@@ -1266,7 +1273,7 @@ export class SynArc {
       address: tokenMessengerAddress,
       abi: TOKEN_MESSENGER_ABI,
       functionName: 'depositForBurn',
-      args: [amountRaw, targetDomain, recipientBytes32, usdcAddress],
+      args: [amountRaw, targetDomain, recipientBytes32, tokenAddress],
       account: this.getSigner(address),
     })
     await this.publicClient.waitForTransactionReceipt({ hash: bridgeTx })
@@ -1317,7 +1324,7 @@ export class SynArc {
       const isRebalance = desc.includes('[TreasuryRebalance]') || desc.includes('AUTONOMOUS AGENT PROPOSAL')
       if (!isRebalance) continue
 
-      const amountMatch = desc.match(/Amount:\s*([\d.]+)\s*USDC/)
+      const amountMatch = desc.match(/Amount:\s*([\d.]+)\s*(USDC|EURC)?/)
       if (!amountMatch) continue
 
       const chainMatch = desc.match(/Target Chain:\s*([^\n]+)/)
