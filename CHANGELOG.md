@@ -2,6 +2,22 @@
  
 All notable changes to `synarc-agent-sdk` will be documented in this file.
 
+## [0.5.12] — 2026-10-16
+
+- **Circle CCTP EURC Rebalance Support**:
+  - Added native EURC cross-chain support in `createCCTPRebalanceProposal`, `executeCCTPRebalance`, and `getPendingRebalanceProposals`.
+  - Added optional `token?: 'USDC' | 'EURC'` parameter to `RebalanceProposalParams` (defaults to `USDC`).
+  - Added automatic resolution of canonical Circle EURC contract addresses on Arc Mainnet (`0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1`) and Testnet (`0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a`).
+  - Configured CCTP Token Messenger addresses for both Arc Mainnet (`0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d`) and Testnet (`0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA`).
+- **Verified Mainnet Crowdfund Escrow**:
+  - Updated `SYNARC_MAINNET.crowdfund` address to verified exact-match contract `0x99955b487aE5519a2b1Ff677f9bed3A6145b750d`.
+  - Exported convenience constant `MAINNET_CROWDFUND_ADDRESS`.
+- **RPC & Network Resilience**:
+  - Updated Arc Testnet RPC endpoints to incorporate high-performance Canteen Swarm node endpoint with official fallbacks.
+- **Runnable Examples & Documentation**:
+  - Added `examples/demo.ts` demonstrating live Arc Mainnet integration.
+  - Added official email contact (`sundersltd1@gmail.com`) to README.
+
 ## [0.5.11] — 2026-10-09
 
 - **Build Pipeline & Transitive CVE Elimination**:

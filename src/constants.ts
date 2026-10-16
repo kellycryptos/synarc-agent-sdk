@@ -66,7 +66,7 @@ export const SYNARC_MAINNET = {
   agent: '0x88BdF819466C1802ce6C780a9fbdF3A314cab07D',
   tokenMessenger: '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
   messageTransmitter: '0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
-  crowdfund: '0xd5374DFC4B01F60115A52Df027704062506b3030',
+  crowdfund: '0x99955b487aE5519a2b1Ff677f9bed3A6145b750d',
   deployerReviewer: '0xE819090D7810D89f2E86e167d0b58425dEd745D8',
   agentReleaseCapUSDC: 50,
   agentReleaseCapMicro: 50000000n,
@@ -89,4 +89,5 @@ export const MAINNET_TREASURY_ADDRESS     = SYNARC_MAINNET.treasuryGovernance;
 export const MAINNET_GOVERNOR_ADDRESS     = SYNARC_MAINNET.governor;
 export const MAINNET_TOKEN_ADDRESS        = SYNARC_MAINNET.token;
 export const MAINNET_AGENT_ADDRESS        = SYNARC_MAINNET.agent;
+export const MAINNET_CROWDFUND_ADDRESS    = SYNARC_MAINNET.crowdfund;
 

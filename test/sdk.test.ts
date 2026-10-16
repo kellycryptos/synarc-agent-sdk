@@ -13,6 +13,7 @@ import {
   MAINNET_TREASURY_ADDRESS,
   MAINNET_GOVERNOR_ADDRESS,
   MAINNET_TOKEN_ADDRESS,
+  MAINNET_CROWDFUND_ADDRESS,
 } from '../src/index'
 
 describe('SynArc SDK tests', () => {
@@ -39,11 +40,13 @@ describe('SynArc SDK tests', () => {
     expect(SYNARC_MAINNET.token).toBe('0x8f4b429794ABa4607d177b100Cc5e481D22d0ad4')
     expect(SYNARC_MAINNET.usdc).toBe('0x3600000000000000000000000000000000000000')
     expect(SYNARC_MAINNET.eurc).toBe('0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1')
+    expect(SYNARC_MAINNET.crowdfund).toBe('0x99955b487aE5519a2b1Ff677f9bed3A6145b750d')
     expect(SYNARC_MAINNET.agentReleaseCapUSDC).toBe(50)
     expect(SYNARC_MAINNET.agentReleaseCapMicro).toBe(50000000n)
     expect(MAINNET_TREASURY_ADDRESS).toBe(SYNARC_MAINNET.treasury)
     expect(MAINNET_GOVERNOR_ADDRESS).toBe(SYNARC_MAINNET.governor)
     expect(MAINNET_TOKEN_ADDRESS).toBe(SYNARC_MAINNET.token)
+    expect(MAINNET_CROWDFUND_ADDRESS).toBe(SYNARC_MAINNET.crowdfund)
   })
 
   it('should instantiate SynArc on Arc Mainnet with production contracts by default', () => {
@@ -144,6 +147,22 @@ describe('SynArc SDK tests', () => {
 
     await expect(
       agent.executeCCTPRebalance('1')
+    ).rejects.toThrow('Wallet required')
+  })
+
+  it('should support EURC token in createRebalanceProposal', async () => {
+    const synarc = new SynArc(config)
+    const agent = new SynArcTreasuryAgent(synarc)
+
+    await expect(
+      agent.createRebalanceProposal({
+        amountUSDC: '500',
+        token: 'EURC',
+        targetChain: 'Ethereum',
+        targetDomain: 0,
+        mintRecipient: '0x0000000000000000000000000000000000000000',
+        reason: 'Test EURC rebalance'
+      })
     ).rejects.toThrow('Wallet required')
   })
 
