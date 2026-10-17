@@ -59,14 +59,13 @@ export class SynArc {
       agentAddress: config.agentAddress || (defaultContracts.agent as `0x${string}`),
     }
 
-    const defaultRpc = isMainnet ? 'https://rpc.mainnet.arc.io' : 'https://rpc.testnet.arc.network'
-    const fallbackRpc = isMainnet ? 'https://rpc.arc.network' : 'https://rpc.testnet.arc.io'
+    // Build transport with all endpoints in priority order (Canteen Swarm as primary testnet node, Arc official fallbacks)
+    const chainRpcUrls = targetChain.rpcUrls.default.http as readonly string[]
+    const rpcUrls = config.rpcUrl
+      ? [config.rpcUrl, ...chainRpcUrls.filter(u => u !== config.rpcUrl)]
+      : [...chainRpcUrls]
 
-    // Build transport with fallbacks
-    const transport = fallback([
-      http(config.rpcUrl || defaultRpc),
-      http(fallbackRpc),
-    ])
+    const transport = fallback(rpcUrls.map(url => http(url)))
 
     // Always create public client for reads
     this.publicClient = createPublicClient({
