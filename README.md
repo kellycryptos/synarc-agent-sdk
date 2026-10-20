@@ -1,5 +1,9 @@
 # synarc-agent-sdk — Syn DAO Agent SDK (formerly SynArc)
 
+[![npm version](https://img.shields.io/npm/v/synarc-agent-sdk?color=emerald&style=for-the-badge)](https://www.npmjs.com/package/synarc-agent-sdk)
+[![YouTube](https://img.shields.io/badge/YouTube-@syndaopro-red?style=for-the-badge&logo=youtube)](https://youtube.com/@syndaopro)
+[![Twitter Follow](https://img.shields.io/badge/X-@syndaopro-black?style=for-the-badge&logo=x)](https://x.com/syndaopro)
+
 > Package name unchanged for backwards compatibility. Product is now **Syn DAO**, built on Arc.
 
 > **The official SDK for Syn DAO** — Enabling businesses, creators, and DAOs to launch transparent organizations, receive USDC funding, and manage treasuries autonomously on Arc.
@@ -736,6 +740,7 @@ const vaults = await earn.exploreVaults()
 ## Links
 
 - **Live App:** [syndaopro.xyz](https://syndaopro.xyz)
+- **YouTube:** [@syndaopro](https://youtube.com/@syndaopro)
 - **Twitter / X:** [@syndaopro](https://x.com/syndaopro)
 - **Email:** [hello@syndaopro.xyz](mailto:hello@syndaopro.xyz)
 - **GitHub:** [kellycryptos/synarc-agent-sdk](https://github.com/kellycryptos/synarc-agent-sdk)
