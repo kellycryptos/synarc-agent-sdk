@@ -18,7 +18,7 @@ Syn DAO is a governance and treasury platform that enables businesses, creators,
 - **Automated Treasury Guard** — Autonomous agent supporting Auto Rebalancing (CCTP), Auto Payments (scheduled with 24h timelock), and Risk Monitoring with emergency pause.
 - **Arc Earn & DeFi Vaults** — Autonomous deposit and yield operations in Morpho vaults on Arc via `@circle-fin/earn-kit`.
 - **Bidirectional CCTP Bridge** — Native Circle burn-and-mint; Arc ↔ Ethereum, Base, and Avalanche without wrapper tokens.
-- **Wallet-Agnostic** — MetaMask, Privy, Circle Programmable Wallets, Coinbase, RainbowKit, WalletConnect, or raw private keys.
+- **Wallet-Agnostic** — MetaMask, Rabby, Circle Programmable Wallets, Coinbase, RainbowKit, WalletConnect, or raw private keys.
 - **Read-Only Mode** — Query balances, campaigns, and treasury stats without connecting a wallet.
 
 ---
@@ -86,7 +86,7 @@ Syn DAO integrates with the Circle ecosystem and autonomous systems to power its
 
 *   **Circle CCTP (Cross-Chain Transfer Protocol)** — *Fully Deployed & Functional*: Handles native burn-and-mint USDC routing between Arc Testnet and Ethereum Sepolia. In `lib/agent/cctp-executor.ts`, the system executes burns, polls Circle's Iris attestation API for validation consensus, and triggers mint receipts on the destination Messenger contract.
 *   **Circle Gateway (x402 Nanopayments)** — *Simulated/Planned*: Tracks AI model execution fees for each inference call in `lib/agent/gateway-payments.ts`. The codebase contains hooks to deduct USDC internally for every Groq API request, awaiting live production endpoints to route actual on-chain fee payments.
-*   **Modular Wallets (ERC-4337 & Social Auth)** — *Fully Deployed & Functional*: Provisioned dynamically for users using Privy social logins and Circle's Web3 Services (W3S). In `lib/tx-helper.ts`, transactions submitted by Circle embedded wallets are routed via custom EIP-1193 providers and sponsored gaslessly via paymasters.
+*   **Modular Wallets (ERC-4337 & Social Auth)** — *Fully Deployed & Functional*: Provisioned dynamically for users using Circle's Web3 Services (W3S) and standard Web3 wallet connectors. In `lib/tx-helper.ts`, transactions submitted by Circle embedded wallets are routed via custom EIP-1193 providers and sponsored gaslessly via paymasters.
 *   **Groq AI** — *Fully Deployed & Functional*: Powers the agent's real-time treasury analysis engine in `lib/agent/treasury-agent.ts`. The agent script calls the Groq SDK using the Groq AI Engine to evaluate current balances and autonomously execute or queue rebalancing decisions.
 *   **ERC-8004 Identity Registry** — *Fully Deployed & Functional*: Deployed registry contract (`0x8004A818BFB912233c491871b3d84c89A494BD9e`) registers agent identity autonomously on-chain.
 
