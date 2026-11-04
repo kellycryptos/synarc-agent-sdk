@@ -1,6 +1,8 @@
 # synarc-agent-sdk — Syn DAO Agent SDK (formerly SynArc)
 
 [![npm version](https://img.shields.io/npm/v/synarc-agent-sdk?color=emerald&style=for-the-badge)](https://www.npmjs.com/package/synarc-agent-sdk)
+[![DefiLlama](https://img.shields.io/badge/DefiLlama-Listed-orange?style=for-the-badge)](https://defillama.com/protocol/syn-dao)
+[![Circle Alliance](https://img.shields.io/badge/Circle_Alliance-Member-0052FF?style=for-the-badge)](https://partners.circle.com/partner/syn-dao)
 [![YouTube](https://img.shields.io/badge/YouTube-@syndaopro-red?style=for-the-badge&logo=youtube)](https://youtube.com/@syndaopro)
 [![Twitter Follow](https://img.shields.io/badge/X-@syndaopro-black?style=for-the-badge&logo=x)](https://x.com/syndaopro)
 
@@ -24,6 +26,34 @@ Syn DAO is a governance and treasury platform that enables businesses, creators,
 - **Bidirectional CCTP Bridge** — Native Circle burn-and-mint; Arc ↔ Ethereum, Base, and Avalanche without wrapper tokens.
 - **Wallet-Agnostic** — MetaMask, Rabby, Circle Programmable Wallets, Coinbase, RainbowKit, WalletConnect, or raw private keys.
 - **Read-Only Mode** — Query balances, campaigns, and treasury stats without connecting a wallet.
+
+---
+
+## Solutions & Architectural Blueprints
+
+The SDK provides unified primitives across four primary personas:
+
+### 1. Organizations & Enterprise
+* **Dual-Treasury Governance**: Maintain a community-visible, timelocked reserve treasury alongside a fast-access operating account.
+* **Document-Anchored Vendor Settlements**: Enforce the **Three-Way Match Release Valve** (`SynArcTreasury.sol`). Every capital outflow requires contract-level agreement between the on-chain governance order, an authentic IPFS deliverable CID, and the registered payee address.
+* **Anti-Tamper Payroll**: Enforce a mandatory 48-hour cooldown on payee address modifications to neutralize prompt-injection and unauthorized address substitution attacks.
+* **Separation of Duties**: Micro-payments ($\le 50$ USDC) execute autonomously under policy; any disbursement exceeding 50 USDC automatically halts on-chain for mandatory human multi-sig review.
+
+### 2. Businesses & SMBs
+* **Milestone-Gated Client Escrows**: Deploy isolated milestone-escrow contracts (`createCreatorDAO` / `SynArcCrowdfund`) for client retainers, SaaS delivery contracts, and consulting milestones. Capital is released only when deliverables are verified.
+* **Zero-Slippage Cross-Chain Payments**: Accept native USDC from clients on Ethereum, Base, or Avalanche and route funds 1:1 to Arc via native **Circle CCTP** burn-and-mint without wrapper tokens or liquidity pool fees.
+* **Non-Custodial Working Capital Yield**: Put idle corporate treasury reserves to work in curated Morpho vaults on Arc via `SynArcEarn` (`@circle-fin/earn-kit`).
+
+### 3. Communities & DAOs
+* **Delegated Checkpointed Governance**: Full OpenZeppelin `ERC20Votes` support with snapshot-based delegation, preventing flash-loan double-voting attacks.
+* **Creator DAO Launchpads**: Launch decentralized crowdfunds with customized durations, funding goals, and transparent milestone tracking.
+* **Verifiable Grant Distributions**: Disburse ecosystem grants with public deliverable verification, transparent on-chain voting, and real-time execution telemetry.
+
+### 4. Autonomous AI Agents
+* **Autonomous Operating Accounts**: Grant AI agents programmatic wallets capable of executing sub-cap disbursements ($\le 50$ USDC) and rebalancing routines with zero human latency.
+* **On-Chain Agent Identity (ERC-8004)**: Register agent metadata, capabilities, and owner addresses in the canonical on-chain Agent Registry (`0x8004A818BFB912233c491871b3d84c89A494BD9e`).
+* **Automated Treasury Guard**: Continuous health monitoring, automated sweep triggers, and cross-chain rebalancing between Arc and Ethereum Sepolia via `SynArcTreasuryAgent`.
+* **Idempotency Protection**: Hardware-style on-chain bit-flip guards eliminate replay attacks and accidental duplicate disbursements.
 
 ---
 
@@ -84,15 +114,127 @@ import { TREASURY_GOVERNANCE_ADDRESS, TREASURY_AGENT_ADDRESS } from 'synarc-agen
 
 ---
 
-## Circle & Agent Integrations Reference
+## Circle Alliance Ecosystem & Core Rails
 
-Syn DAO integrates with the Circle ecosystem and autonomous systems to power its rebalancing, governance, and onboarding systems:
+Syn DAO is an official member of the **Circle Alliance** ([partners.circle.com/partner/syn-dao](https://partners.circle.com/partner/syn-dao)), delivering native stablecoin infrastructure directly on Arc:
 
-*   **Circle CCTP (Cross-Chain Transfer Protocol)** — *Fully Deployed & Functional*: Handles native burn-and-mint USDC routing between Arc Testnet and Ethereum Sepolia. In `lib/agent/cctp-executor.ts`, the system executes burns, polls Circle's Iris attestation API for validation consensus, and triggers mint receipts on the destination Messenger contract.
-*   **Circle Gateway (x402 Nanopayments)** — *Simulated/Planned*: Tracks AI model execution fees for each inference call in `lib/agent/gateway-payments.ts`. The codebase contains hooks to deduct USDC internally for every Groq API request, awaiting live production endpoints to route actual on-chain fee payments.
-*   **Modular Wallets (ERC-4337 & Social Auth)** — *Fully Deployed & Functional*: Provisioned dynamically for users using Circle's Web3 Services (W3S) and standard Web3 wallet connectors. In `lib/tx-helper.ts`, transactions submitted by Circle embedded wallets are routed via custom EIP-1193 providers and sponsored gaslessly via paymasters.
-*   **Groq AI** — *Fully Deployed & Functional*: Powers the agent's real-time treasury analysis engine in `lib/agent/treasury-agent.ts`. The agent script calls the Groq SDK using the Groq AI Engine to evaluate current balances and autonomously execute or queue rebalancing decisions.
-*   **ERC-8004 Identity Registry** — *Fully Deployed & Functional*: Deployed registry contract (`0x8004A818BFB912233c491871b3d84c89A494BD9e`) registers agent identity autonomously on-chain.
+*   **Canonical Arc USDC** — *Native Arc Gas & Settlement*: Native Circle USDC (`0x3600000000000000000000000000000000000000`) powers all gas fee accounting, disbursements, and micro-escrows without synthetic bridges.
+*   **Circle CCTP (Cross-Chain Transfer Protocol)** — *Fully Deployed & Functional*: Native burn-and-mint USDC routing between Arc Mainnet/Testnet, Ethereum, Base, and Avalanche. Executes burns, polls Circle's Iris attestation API, and triggers mint receipts on destination messengers.
+*   **Circle App Kit & Programmable Wallets** — *Fully Deployed & Functional*: Provisioned dynamically for users using Circle's Web3 Services (W3S) with passkeys, social onboarding, and paymaster gas sponsorship.
+*   **Circle Earn Kit & Morpho Vaults** — *Fully Deployed & Functional*: Automated treasury yield operations in curated Morpho vaults on Arc via `SynArcEarn`.
+*   **Circle Gateway (x402 Nanopayments)** — *Simulated/Planned*: Tracks AI model execution fees for each inference call in `lib/agent/gateway-payments.ts`.
+*   **Groq AI Engine** — *Fully Deployed & Functional*: Powers the agent's real-time treasury analysis engine in `lib/agent/treasury-agent.ts`.
+*   **ERC-8004 Identity Registry** — *Fully Deployed & Functional*: Canonical registry (`0x8004A818BFB912233c491871b3d84c89A494BD9e`) registers agent identity autonomously on-chain.
+
+---
+
+## Customizing Governance & Determining Voting Weight
+
+The Syn DAO governance protocol provides granular customizability over how voting weight is computed, how proposals pass, and how execution timelocks operate.
+
+### How Voting Weight is Determined On-Chain
+
+1. **Checkpointed sARC Tokens (`ERC20Votes`)**:
+   - 1 delegated `sARC` = 1 base vote.
+   - Balances are check-pointed by block height (`getPastVotes(account, blockNumber)`). Voting power is determined at the proposal snapshot block, making flash-loan manipulation impossible.
+   - Token holders must delegate voting weight (either to themselves or a representative) before the proposal creation block to participate.
+
+2. **USDC Economic Weighting Multiplier**:
+   - In community and creator escrows, voting weight can factor in stable asset holdings or contribution amounts, aligning decision-making power with direct economic commitment.
+
+### Pluggable Voting Weight Strategies
+
+Developers integrating the SDK can implement custom voting weight strategies on top of the Governor contracts:
+
+```typescript
+import { SynArc, SYNARC_MAINNET } from 'synarc-agent-sdk';
+
+const synarc = new SynArc({
+  ...SYNARC_MAINNET,
+});
+
+/**
+ * Strategy 1: Standard Token-Weighted (Default)
+ * Direct check-pointed snapshot balance at proposal creation block.
+ */
+async function getTokenWeight(address: string, snapshotBlock: bigint): Promise<bigint> {
+  return await synarc.getPastVotes(address, snapshotBlock);
+}
+
+/**
+ * Strategy 2: Quadratic Voting Calculation
+ * Voting Weight = sqrt(sARC Tokens)
+ * Amplifies grassroots participation and dampens plutocratic whale dominance.
+ */
+function calculateQuadraticWeight(tokenBalanceRaw: bigint): bigint {
+  if (tokenBalanceRaw < 0n) throw new Error("Negative balance");
+  if (tokenBalanceRaw < 2n) return tokenBalanceRaw;
+  let x0 = tokenBalanceRaw / 2n;
+  let x1 = (x0 + tokenBalanceRaw / x0) / 2n;
+  while (x1 < x0) {
+    x0 = x1;
+    x1 = (x0 + tokenBalanceRaw / x0) / 2n;
+  }
+  return x0;
+}
+
+/**
+ * Strategy 3: Multi-Asset Weighted Blended Index
+ * Combines sARC governance tokens, USDC gas reserves, EURC, and cirBTC:
+ * Score = (sARC * 1.0) + (USDC * 0.5) + (EURC * 0.5) + (cirBTC_USD * 1.2)
+ */
+interface AssetBalances {
+  sarc: number;
+  usdc: number;
+  eurc: number;
+  cirBtcUsd: number;
+}
+
+function calculateBlendedVotingPower(balances: AssetBalances): number {
+  return (
+    balances.sarc * 1.0 +
+    balances.usdc * 0.5 +
+    balances.eurc * 0.5 +
+    balances.cirBtcUsd * 1.2
+  );
+}
+
+/**
+ * Strategy 4: Reputation & Soulbound Agent Credentials
+ * Queries ERC-8004 Agent Registry or soulbound badges to multiply voting weight.
+ */
+async function getAgentReputationMultiplier(agentAddress: string): Promise<number> {
+  const isRegistered = await synarc.isRegisteredAgent(agentAddress);
+  return isRegistered ? 1.25 : 1.0;
+}
+```
+
+---
+
+## Privacy Roadmap: Shielded Ballots & Private Disbursements (Coming Soon)
+
+To support sensitive enterprise payroll, private corporate governance, and confidential contributor compensation, Syn DAO is developing native zero-knowledge privacy extensions for Arc:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      SYN DAO PRIVACY ROADMAP (V3)                       │
+├────────────────────────────────┬────────────────────────────────────────┤
+│ 1. ZK Confidential Ballots     │ • Vote casting via ZK-SNARK proofs    │
+│    (Private Governance)        │ • Verify weight without balance leak   │
+│                                │ • Homomorphic on-chain tallying        │
+├────────────────────────────────┼────────────────────────────────────────┤
+│ 2. Shielded Disbursements      │ • Stealth addresses for payouts        │
+│    (Confidential Payroll)      │ • Zero-knowledge vendor invoices       │
+│                                │ • Shielded USDC grants & milestones    │
+├────────────────────────────────┼────────────────────────────────────────┤
+│ 3. Selective Compliance Keys   │ • Exportable viewing keys for audits   │
+│    (Enterprise-Ready)          │ • Cryptographic proofs for tax/AML     │
+└────────────────────────────────┴────────────────────────────────────────┘
+```
+
+* **ZK Confidential Ballots**: Voters prove voting eligibility and voting weight via client-side ZK-SNARK proofs without revealing their wallet address or balance, eliminating voter intimidation and bandwagon bias.
+* **Shielded Disbursements & Stealth Payroll**: Support for stealth address derivation and shielded USDC transfers on Arc, enabling private disbursements while maintaining cryptographic proof of milestone completion.
+* **Selective Compliance Viewing Keys**: Organizations can generate exportable cryptographic viewing keys for authorized auditors or tax authorities without making financial flows public.
 
 ---
 
