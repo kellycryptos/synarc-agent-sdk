@@ -2,6 +2,18 @@
  
 All notable changes to `synarc-agent-sdk` will be documented in this file.
 
+## [0.5.13] — 2026-11-04
+
+- **Architectural Blueprints & Multi-Persona Documentation**:
+  - Added dedicated blueprints for Organizations & Enterprise, Businesses & SMBs, Communities & DAOs, and Autonomous AI Agents.
+- **Custom Governance & Pluggable Voting Weight Strategies**:
+  - Documented on-chain voting weight computation (`sARC` ERC20Votes checkpoints and USDC balance weighting).
+  - Added TypeScript implementations for Quadratic Voting (`sqrt(sARC)` BigInt algorithm), Multi-Asset Blended Index, and ERC-8004 Agent Reputation Multipliers.
+- **Zero-Knowledge Privacy Layer Roadmap**:
+  - Documented upcoming ZK Confidential Ballots (ZK-SNARK private voting), Shielded Treasury Disbursements (stealth payroll), and Selective Compliance Viewing Keys.
+- **Circle Alliance Integration**:
+  - Detailed official Circle Alliance Partner infrastructure, CCTP burn-and-mint routing, App Kit Programmable Wallets, and Morpho yield integration.
+
 ## [0.5.12] — 2026-10-16
 
 - **Circle CCTP EURC Rebalance Support**:
